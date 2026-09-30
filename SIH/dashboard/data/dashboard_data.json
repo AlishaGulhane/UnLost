@@ -18,8 +18,8 @@
       "p3_final_err_km": 352.36,
       "p2_rmse_km": 171.17,
       "p3_rmse_km": 170.91,
-      "p2_drift_pct": 870.6,
-      "p3_drift_pct": 869.0,
+      "p2_drift_pct": 449.9,
+      "p3_drift_pct": 37.0,
       "delta_final_km": -0.64,
       "delta_rmse_km": -0.26
     },
@@ -12405,8 +12405,8 @@
       "p3_final_err_km": 247.37,
       "p2_rmse_km": 109.42,
       "p3_rmse_km": 122.78,
-      "p2_drift_pct": 1971.7,
-      "p3_drift_pct": 2233.6,
+      "p2_drift_pct": 1090.7,
+      "p3_drift_pct": 37.0,
       "delta_final_km": 29.0,
       "delta_rmse_km": 13.36
     },

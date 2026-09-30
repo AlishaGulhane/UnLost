@@ -28,7 +28,7 @@
       departure: 'Pune',
       corridor: 'Shivajinagar via Sangamwadi & Nagar Road Corridor',
       distKm: 8.6,
-      durationMin: 18,
+      durationMin: 11,
       arrivalDeterministic: '5:42 PM',
       datasetSource: 'S-Vta1a',
       arrivalName: 'Pune Airport Terminal 1',
@@ -77,7 +77,7 @@
       departure: 'Pune',
       corridor: 'FC Road via Bund Garden & Koregaon Park North',
       distKm: 9.2,
-      durationMin: 26,
+      durationMin: 12,
       arrivalDeterministic: '5:50 PM',
       datasetSource: 'S-Vta2',
       arrivalName: 'Viman Nagar Symbiosis Hub',
@@ -122,7 +122,7 @@
       departure: 'Pune',
       corridor: 'Shivajinagar via Sangam Bridge & Sassoon Rd',
       distKm: 4.2,
-      durationMin: 14,
+      durationMin: 6,
       arrivalDeterministic: '5:38 PM',
       datasetSource: 'S-Vta1a',
       arrivalName: 'Pune Central Railway Station',
@@ -162,7 +162,7 @@
       departure: 'Pune',
       corridor: 'FC Road / JM Road Transit Corridor',
       distKm: 3.8,
-      durationMin: 12,
+      durationMin: 5,
       arrivalDeterministic: '5:36 PM',
       datasetSource: 'S-Vta1a',
       arrivalName: 'Shivajinagar Central Hub',
@@ -201,7 +201,7 @@
       departure: 'Pune',
       corridor: 'Pune University Circle via Aundh & Wakad',
       distKm: 17.4,
-      durationMin: 42,
+      durationMin: 21,
       arrivalDeterministic: '6:06 PM',
       datasetSource: 'S-Vta2',
       arrivalName: 'Hinjawadi Phase 1 Campus',
@@ -244,7 +244,7 @@
       departure: 'Pune',
       corridor: 'Pune University Circle via Aundh',
       distKm: 15.2,
-      durationMin: 25,
+      durationMin: 19,
       arrivalDeterministic: '6:15 PM',
       datasetSource: 'S-Vta2',
       arrivalName: 'Wakad Junction',
@@ -271,7 +271,7 @@
       name: 'Kothrud (Chandani Chowk)',
       corridor: 'From Shivajinagar via FC Road & Karve Road Arterial',
       distKm: 6.8,
-      durationMin: 18,
+      durationMin: 9,
       arrivalName: 'Kothrud Chandani Chowk',
       roadWaypoints: [
         [18.5314, 73.8446],
@@ -285,7 +285,7 @@
       name: 'Hadapsar (Magarpatta City)',
       corridor: 'From Shivajinagar via Pune Station & Solapur Road',
       distKm: 10.4,
-      durationMin: 28,
+      durationMin: 13,
       arrivalName: 'Magarpatta Cybercity Hub',
       roadWaypoints: [
         [18.5314, 73.8446],
@@ -299,7 +299,7 @@
       name: 'Mumbai Expressway Corridor',
       corridor: 'From Shivajinagar via Old Pune-Mumbai Highway',
       distKm: 22.0,
-      durationMin: 45,
+      durationMin: 27,
       arrivalName: 'Dehu Road Expressway Toll Plaza',
       roadWaypoints: [
         [18.5314, 73.8446],
@@ -314,7 +314,7 @@
       name: 'Swargate Bus Terminal',
       corridor: 'From Shivajinagar via Shivaji Road / Bajirao Road',
       distKm: 4.8,
-      durationMin: 16,
+      durationMin: 6,
       arrivalName: 'Swargate Central Bus Station',
       roadWaypoints: [
         [18.5314, 73.8446],
@@ -328,7 +328,7 @@
       name: 'Baner High Street',
       corridor: 'From Shivajinagar via University Road & Baner Road',
       distKm: 9.6,
-      durationMin: 25,
+      durationMin: 12,
       arrivalName: 'Baner High Street Commercial Hub',
       roadWaypoints: [
         [18.5314, 73.8446],
@@ -414,7 +414,9 @@
   let currentDenseCoords = [];
   let routeCasingLayer = null;
   let routeAheadLayer = null;
+  let previewOutageLayer = null;
   let routePastLayer = null;
+  let outageSegments = [];
   let vehicleMarker = null;
   let startMarker = null;
   let destMarker = null;
@@ -488,6 +490,7 @@
     dockTimeRemaining: document.getElementById('dock-time-remaining'),
     dockDistRemaining: document.getElementById('dock-dist-remaining'),
     dockArriveTime: document.getElementById('dock-arrive-time'),
+    dockCurrentTime: document.getElementById('dock-current-time'),
     dockDistTravelled: document.getElementById('dock-dist-travelled'),
     navSpeedDisplay: document.getElementById('nav-speed-display'),
     hudModeDot: document.getElementById('hud-mode-dot'),
@@ -704,7 +707,13 @@
         color: '#FF5841',
         weight: 6,
         opacity: 0.95,
-        lineJoin: 'round',
+        lineCap: 'round', smoothFactor: 1.5
+      }).addTo(leafletMap);
+      
+      previewOutageLayer = L.polyline([], {
+        color: '#A855F7',
+        weight: 8, // slightly thicker to stand out on the red line
+        opacity: 1.0,
         lineCap: 'round', smoothFactor: 1.5
       }).addTo(leafletMap);
       // Completed road route (behind vehicle) — Soft slate
@@ -884,12 +893,27 @@
     if (dom.previewDistVal) {
       dom.previewDistVal.innerHTML = `${route.distKm.toFixed(1)} <span class="p-met-unit">KM</span>`;
     }
+        // Calculate ETA mathematically based on 50 km/h (13.8889 m/s)
+    const TIME_ZONE = 'Asia/Kolkata';
+    const distKm = route.totalDistKm || route.distKm;
+    const calcDurationMin = Math.ceil((distKm / 50.0) * 60);
+    
     if (dom.previewTimeVal) {
-      dom.previewTimeVal.innerHTML = `~${route.durationMin} <span class="p-met-unit">MIN</span>`;
+      dom.previewTimeVal.innerHTML = `~${calcDurationMin} <span class="p-met-unit">MIN</span>`;
     }
     if (dom.previewArrivalVal) {
-      dom.previewArrivalVal.innerHTML = `${route.arrivalDeterministic} <span class="p-met-unit">PM</span>`;
+      const now = new Date();
+      const arrivalDate = new Date(now.getTime() + calcDurationMin * 60000);
+      const timeFormatter = new Intl.DateTimeFormat('en-IN', {
+        timeZone: TIME_ZONE,
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const formattedArr = timeFormatter.format(arrivalDate);
+      const parts = formattedArr.split(" ");
+      dom.previewArrivalVal.innerHTML = `${parts[0]} <span class="p-met-unit">${parts[1] || ""} (IST)</span>`;
     }
+
     if (route.sectors && route.sectors.length >= 3) {
       if (dom.previewSector1Title) dom.previewSector1Title.textContent = route.sectors[0].title;
       if (dom.previewSector1Desc) dom.previewSector1Desc.textContent = route.sectors[0].desc;
@@ -942,14 +966,15 @@
       }
       const route = routeData.routes[0];
       const distKm = route.distance / 1000;
-      const durationMin = Math.round(route.duration / 60);
+      // Force estimated time based on realistic 50km/h average speed
+      const durationMin = Math.round((distKm / 50.0) * 60);
       
       // GeoJSON coordinates are [lon, lat], we need [lat, lon]
       const destWaypoints = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
       
       // Calculate deterministic arrival time
       const arrivalDate = new Date(Date.now() + durationMin * 60000);
-      const arrivalDeterministic = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const arrivalDeterministic = arrivalDate.toLocaleTimeString('en-US', {timeZone: 'Asia/Kolkata', hour: '2-digit', minute:'2-digit'});
       const customId = 'custom-' + Date.now();
       PUNE_ROUTES[customId] = {
         id: customId,
@@ -1006,7 +1031,9 @@
     if (dom.stepBtnNav) dom.stepBtnNav.classList.toggle('active', step === 'navigating');
     // Manage card visibility
     if (dom.flowViewDest) dom.flowViewDest.classList.toggle('hidden', step !== 'destination');
-    if (dom.flowViewPreview) dom.flowViewPreview.classList.toggle('hidden', step !== 'preview');
+    if (dom.flowViewPreview) dom.flowViewPreview.classList.toggle('hidden', step === 'destination');
+      const btnStartNav = document.querySelector('.btn-start-navigation');
+      if (btnStartNav) btnStartNav.style.display = step === 'navigating' ? 'none' : 'flex';
     // Manage live HUD visibility
     const isNav = step === 'navigating';
     if (dom.navInstructionCard) dom.navInstructionCard.classList.toggle('hidden', !isNav);
@@ -1133,9 +1160,19 @@
     if (state.gnssOutage) {
       // OUTAGE ACTIVE — NAVIGATING WITHOUT GPS
       navState.outageStartIdx = navState.index;
+      
+      // Spawn new purple segment for GNSS loss
+      let newOutageLayer = L.polyline([], {
+        color: '#A855F7',
+        weight: 6,
+        opacity: 0.95,
+        lineCap: 'round', smoothFactor: 1.5
+      }).addTo(leafletMap);
+      outageSegments.push({ startIdx: Math.floor(navState.index), layer: newOutageLayer });
+
       // Top bar & buttons
       dom.gnssBadge.className = 'status-indicator outage';
-      dom.gnssStatusText.textContent = 'NAVIGATING WITHOUT GPS';
+      dom.gnssStatusText.textContent = 'GNSS LOST / DEAD RECKONING';
       if (dom.btnQuickOutage) dom.btnQuickOutage.classList.add('active-outage');
       if (dom.quickOutageText) dom.quickOutageText.textContent = 'RESTORE GNSS';
       // Bottom dock buttons
@@ -1145,13 +1182,13 @@
       if (dom.hudModeDot) dom.hudModeDot.className = 'hud-mode-dot outage';
       if (dom.hudModeTitle) dom.hudModeTitle.textContent = 'DEAD RECKONING';
       if (dom.hudOutageAlert) {
-        dom.hudOutageAlert.textContent = 'NAVIGATING WITHOUT GPS';
+        dom.hudOutageAlert.textContent = 'GNSS LOST / DEAD RECKONING';
         dom.hudOutageAlert.classList.remove('hidden');
       }
       showToast({
         type: 'outage',
         icon: '⚡',
-        title: 'NAVIGATING WITHOUT GPS',
+        title: 'GNSS LOST / DEAD RECKONING',
         desc: 'Switched to inertial dead reckoning (IMU-only). Primary navigation arrow continues seamlessly.'
       });
     } else {
@@ -1206,9 +1243,7 @@
     if (dom.dockDistRemaining) dom.dockDistRemaining.textContent = `${remDist.toFixed(1)} km`;
     if (dom.dockDistTravelled) dom.dockDistTravelled.textContent = doneDist.toFixed(1);
     // Time countdown & ETA
-    const remMin = Math.max(0, Math.ceil((route.durationMin * (1 - progress)) / (navState.playbackSpeed || 1)));
-    if (dom.dockTimeRemaining) dom.dockTimeRemaining.textContent = `${remMin} min`;
-    if (dom.dockArriveTime) dom.dockArriveTime.textContent = route.arrivalDeterministic;
+    // ETA updated by setInterval loop based on 50km/h
     // Heading / Bearing readout and compass rotation
     const idxFloor = Math.floor(exactIdx);
     const pt = currentDenseRoute[idxFloor] || currentDenseRoute[0];
@@ -1247,7 +1282,10 @@
     if (navState.flowStep === 'destination') {
       // Step 1: Destination Selection (Home) — Subtle current-location marker on Pune map
       if (routeCasingLayer) routeCasingLayer.setLatLngs([]);
+      outageSegments.forEach(seg => { if(leafletMap.hasLayer(seg.layer)) leafletMap.removeLayer(seg.layer); });
+      outageSegments = [];
       if (routeAheadLayer) routeAheadLayer.setLatLngs([]);
+      if (previewOutageLayer) previewOutageLayer.setLatLngs([]);
       if (routePastLayer) routePastLayer.setLatLngs([]);
       if (vehicleMarker && leafletMap.hasLayer(vehicleMarker)) vehicleMarker.remove();
       if (startMarker && leafletMap.hasLayer(startMarker)) startMarker.remove();
@@ -1272,6 +1310,8 @@
     const startCoord = currentDenseCoords[0];
     const destCoord = currentDenseCoords[currentDenseCoords.length - 1];
     if (navState.flowStep === 'preview') {
+      outageSegments.forEach(seg => { if(leafletMap.hasLayer(seg.layer)) leafletMap.removeLayer(seg.layer); });
+      outageSegments = [];
       // Step 2: Route Preview — Full corridor overview on actual OSM road network
       routeCasingLayer.setLatLngs(currentDenseCoords);
       routeAheadLayer.setLatLngs(currentDenseCoords);
@@ -1293,6 +1333,7 @@
       return;
     }
     if (navState.flowStep === 'navigating') {
+      if (previewOutageLayer) previewOutageLayer.setLatLngs([]); // clear static preview
       // Step 3: Live Navigation — Single primary navigation arrow, smooth camera tracking
       const totalDense = currentDenseRoute.length;
       const exactIdx = Math.min(Math.max(0, navState.index), totalDense - 1);
@@ -1314,6 +1355,14 @@
         const pastCoords = currentDenseCoords.slice(0, idx + 1);
         pastCoords.push([pt.lat, pt.lng]); // Extend white tail exactly to car
         routePastLayer.setLatLngs(pastCoords);
+        
+        // Update current purple outage segment if active
+        if (state.gnssOutage && outageSegments.length > 0) {
+            let currentSegment = outageSegments[outageSegments.length - 1];
+            const segCoords = currentDenseCoords.slice(currentSegment.startIdx, idx + 1);
+            segCoords.push([pt.lat, pt.lng]);
+            currentSegment.layer.setLatLngs(segCoords);
+        }
         
         const aheadCoords = currentDenseCoords.slice(Math.min(idx + 1, currentDenseCoords.length - 1));
         aheadCoords.unshift([pt.lat, pt.lng]); // Start orange path exactly from car
@@ -1771,7 +1820,50 @@
   } else {
     init();
   }
+// Real-time clock and ETA updater
+setInterval(() => {
+  const TIME_ZONE = "Asia/Kolkata";
+  const now = new Date();
+  const timeFormatter = new Intl.DateTimeFormat("en-IN", {
+    timeZone: TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  
+  if (dom.dockCurrentTime) {
+    dom.dockCurrentTime.textContent = timeFormatter.format(now) + " (IST)";
+  }
+
+  if (navState && navState.flowStep === 'navigating' && currentDenseRoute && currentDenseRoute.length > 0) {
+    const route = PUNE_ROUTES[navState.currentRouteId];
+    const totalDist = route ? (route.totalDistKm || route.distKm) : null;
+    if (route && totalDist) {
+      const progress = Math.min(1, Math.max(0, navState.index / Math.max(1, currentDenseCoords.length - 1)));
+      const remainingDistKm = Math.max(0, totalDist * (1 - progress));
+      const playbackSpeed = navState.playbackSpeed || 1;
+      const speedKmH = 50.0 * playbackSpeed;
+      const durationMin = Math.ceil((remainingDistKm / speedKmH) * 60);
+      
+      if (dom.dockTimeRemaining) dom.dockTimeRemaining.textContent = `${durationMin} min`;
+      const now = new Date();
+      const arrivalDate = new Date(now.getTime() + durationMin * 60000);
+      const timeFormatter = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      if (dom.dockArriveTime) dom.dockArriveTime.textContent = timeFormatter.format(arrivalDate) + ' (IST)';
+    }
+  } else if (navState && navState.flowStep !== 'navigating') {
+      if (dom.dockTimeRemaining) dom.dockTimeRemaining.textContent = `-- min`;
+      if (dom.dockArriveTime) dom.dockArriveTime.textContent = `--:--`;
+  }
+}, 1000);
 })();
+
+
+
+
 
 
 

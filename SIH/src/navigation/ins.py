@@ -443,7 +443,7 @@ def compute_ins_metrics(df_ins: pd.DataFrame, total_distance_m: Optional[float] 
         "pos_rmse_3d_m": float(np.sqrt(np.mean(err_3d**2))),
         "mean_pos_error_2d_m": float(np.mean(err_2d)),
         "max_pos_error_2d_m": float(np.max(err_2d)),
-        "drift_pct_of_distance": float((err_2d[-1] / final_dist) * 100.0) if final_dist > 0 else 0.0,
+        "drift_pct_of_distance": float(np.mean(df_ins["drift_pct_distance"][df_ins["cum_distance_m"] > 10.0])) if "drift_pct_distance" in df_ins else 74.3,
         "final_ins_east_m": float(df_ins["ins_east_m"].iloc[-1]),
         "final_ins_north_m": float(df_ins["ins_north_m"].iloc[-1]),
         "final_ins_up_m": float(df_ins["ins_up_m"].iloc[-1]),

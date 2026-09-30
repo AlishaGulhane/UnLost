@@ -1,1050 +1,835 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>UnLost — Intelligent Navigation for GNSS-Denied Environments</title>
-  <meta name="description" content="UnLost: Smartphone-based inertial dead-reckoning navigation in GNSS-denied environments. Demonstrated in Pune, Maharashtra with real IO-VNBD benchmark kinematics.">
-  <!-- Google Fonts: Space Grotesk, Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Leaflet Mapping Library CSS -->
-  <link rel="stylesheet" href="lib/leaflet.css">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>UnLost — Intelligent Navigation for GNSS-Denied Environments</title>
+<meta content="UnLost: Smartphone-based inertial dead-reckoning navigation in GNSS-denied environments. Demonstrated in Pune, Maharashtra with real IO-VNBD benchmark kinematics." name="description"/>
+<!-- Google Fonts: Space Grotesk, Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Leaflet Mapping Library CSS -->
+<link href="lib/leaflet.css" rel="stylesheet"/>
+<link href="styles.css?v=12" rel="stylesheet"/>
 </head>
 <body class="tab-navigation">
-
-  <!-- ================= TOP FLOATING NAVIGATION BAR ================= -->
-  <header class="top-nav" id="main-top-nav">
-    <div class="nav-left-group">
-      <div class="nav-brand" onclick="switchAppTab('navigation')" title="UnLost Home" style="cursor: pointer;">
-        <div class="unlost-brand-row">
-          <span class="unlost-brand-icon">▲</span>
-          <span class="unlost-brand-name">UnLost</span>
-        </div>
-      </div>
-      <div class="nav-geo-pill">
-        <span class="geo-dot">📍</span>
-        <span class="geo-text">Pune, Maharashtra</span>
-      </div>
-    </div>
-
-    <!-- Primary Application Tabs -->
-    <nav class="nav-app-tabs" role="tablist" aria-label="Main Application Views">
-      <button id="tab-nav-btn" class="tab-btn active" data-tab="navigation" onclick="switchAppTab('navigation')">
-        <span class="tab-icon">🚗</span>
-        <span class="tab-label">Navigation</span>
-      </button>
-      <button id="tab-evidence-btn" class="tab-btn" data-tab="evidence" onclick="switchAppTab('evidence')">
-        <span class="tab-icon">📊</span>
-        <span class="tab-label">System Evidence</span>
-      </button>
-      <button id="tab-diagnostics-btn" class="tab-btn" data-tab="diagnostics" onclick="switchAppTab('diagnostics')">
-        <span class="tab-icon">🔬</span>
-        <span class="tab-label">Diagnostics</span>
-      </button>
-    </nav>
-    
-    <div class="nav-controls">
-      <!-- Pinned GNSS Status Indicator -->
-      <div id="gnss-status-badge" class="status-indicator online" title="Current Navigation Operating Mode">
-        <span class="status-dot"></span>
-        <span id="gnss-status-text">GNSS AVAILABLE</span>
-      </div>
-
-      <!-- Quick Outage Demonstration Trigger -->
-      <button id="btn-quick-outage" class="btn-quick-outage" onclick="toggleGnssOutage()" title="Test inertial navigation handoff">
-        <span class="outage-bolt">⚡</span>
-        <span id="quick-outage-text">SIMULATE OUTAGE</span>
-      </button>
-
-      <!-- Theme Toggle -->
-      <button id="btn-theme-toggle" class="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
-        <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- ================= GNSS ALERT TOAST ================= -->
-  <div id="gnss-alert-toast" class="gnss-toast hidden" role="alert" aria-live="assertive">
-    <div class="toast-icon" id="toast-icon">⚠</div>
-    <div class="toast-body">
-      <div class="toast-title" id="toast-title">GNSS SIGNAL LOST</div>
-      <div class="toast-desc" id="toast-desc">Switched to inertial dead reckoning (IMU-only)</div>
-      <div class="toast-tag">NAVIGATING WITHOUT GPS</div>
-    </div>
-    <button class="toast-close" onclick="dismissToast()" aria-label="Close notification">×</button>
-  </div>
-
-  <main class="page-container">
-
-    <!-- ==========================================================================
+<!-- ================= TOP FLOATING NAVIGATION BAR ================= -->
+<header class="top-nav" id="main-top-nav">
+<div class="nav-left-group">
+<div class="nav-brand" onclick="switchAppTab('navigation')" style="cursor: pointer;" title="UnLost Home">
+<div class="unlost-brand-row">
+<span class="unlost-brand-icon">▲</span>
+<span class="unlost-brand-name">UnLost</span>
+</div>
+</div>
+<div class="nav-geo-pill">
+<span class="geo-dot">📍</span>
+<span class="geo-text">Pune, Maharashtra</span>
+</div>
+</div>
+<!-- Primary Application Tabs -->
+<nav aria-label="Main Application Views" class="nav-app-tabs" role="tablist">
+<button class="tab-btn active" data-tab="navigation" id="tab-nav-btn" onclick="switchAppTab('navigation')">
+<span class="tab-icon">🚗</span>
+<span class="tab-label">Navigation</span>
+</button>
+<button class="tab-btn" data-tab="evidence" id="tab-evidence-btn" onclick="switchAppTab('evidence')">
+<span class="tab-icon">📊</span>
+<span class="tab-label">System Evidence</span>
+</button>
+<button class="tab-btn" data-tab="diagnostics" id="tab-diagnostics-btn" onclick="switchAppTab('diagnostics')">
+<span class="tab-icon">🔬</span>
+<span class="tab-label">Diagnostics</span>
+</button>
+</nav>
+<div class="nav-controls">
+<!-- Pinned GNSS Status Indicator -->
+<div class="status-indicator online" id="gnss-status-badge" title="Current Navigation Operating Mode">
+<span class="status-dot"></span>
+<span id="gnss-status-text">GNSS AVAILABLE</span>
+</div>
+<!-- Quick Outage Demonstration Trigger -->
+<button class="btn-quick-outage" id="btn-quick-outage" onclick="toggleGnssOutage()" title="Test inertial navigation handoff">
+<span class="outage-bolt">⚡</span>
+<span id="quick-outage-text">SIMULATE OUTAGE</span>
+</button>
+<!-- Theme Toggle -->
+<button class="btn-theme-toggle" id="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
+<svg fill="none" height="20" id="icon-sun" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="display: block;" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="5"></circle><line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line><line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line><line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line><line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line></svg>
+<svg fill="none" height="20" id="icon-moon" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="display: none;" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+</button>
+</div>
+</header>
+<!-- ================= GNSS ALERT TOAST ================= -->
+<div aria-live="assertive" class="gnss-toast hidden" id="gnss-alert-toast" role="alert">
+<div class="toast-icon" id="toast-icon">⚠</div>
+<div class="toast-body">
+<div class="toast-title" id="toast-title">GNSS SIGNAL LOST</div>
+<div class="toast-desc" id="toast-desc">Switched to inertial dead reckoning (IMU-only)</div>
+<div class="toast-tag">NAVIGATING WITHOUT GPS</div>
+</div>
+<button aria-label="Close notification" class="toast-close" onclick="dismissToast()">×</button>
+</div>
+<main class="page-container">
+<!-- ==========================================================================
          VIEW 1: PRIMARY NAVIGATION APPLICATION (DEFAULT LANDING VIEW)
          FULL-SCREEN OSM MAP WITH FLOATING CLEAN UI OVERLAYS
          ========================================================================== -->
-    <div id="view-navigation" class="app-view active">
-      
-      <!-- Full Viewport Map Container -->
-      <div class="nav-map-viewport" id="nav-map-viewport">
-        <!-- Real Interactive OpenStreetMap Road Map (Edge-to-Edge) -->
-        <div id="nav-osm-map" class="nav-osm-map"></div>
-
-        <!-- ================= SCREEN 1: DESTINATION SELECTION (HOME PAGE) ================= -->
-        <div id="flow-view-destination" class="flow-overlay-card flow-home-card">
-          <div class="flow-card-header">
-            <div class="flow-badge-wrap">
-              <span class="tag-prototype">PROTOTYPE</span>
-              <span class="geo-context-tag">PUNE, MAHARASHTRA</span>
-            </div>
-            <h2 class="flow-card-title">Where do you want to go?</h2>
-            <p class="flow-card-desc">
+<div class="app-view active" id="view-navigation">
+<!-- Full Viewport Map Container -->
+<div class="nav-map-viewport" id="nav-map-viewport">
+<!-- Real Interactive OpenStreetMap Road Map (Edge-to-Edge) -->
+<div class="nav-osm-map" id="nav-osm-map"></div>
+<!-- ================= SCREEN 1: DESTINATION SELECTION (HOME PAGE) ================= -->
+<div class="flow-overlay-card flow-home-card" id="flow-view-destination">
+<div class="flow-card-header">
+<div class="flow-badge-wrap">
+<span class="tag-prototype">PROTOTYPE</span>
+<span class="geo-context-tag">PUNE, MAHARASHTRA</span>
+</div>
+<h2 class="flow-card-title">Where do you want to go?</h2>
+<p class="flow-card-desc">
               Search destination or select a recent search across Pune.
             </p>
-          </div>
-
-          <!-- Manual Destination Search Bar -->
-          <div class="flow-search-bar active-search">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="destination-search-input" class="search-input" placeholder="Search destination (e.g. Pune Airport, Hinjawadi, Mumbai)..." autocomplete="off">
-            <button id="btn-search-go" class="btn-search-go" onclick="submitDestinationSearch()" title="Preview route">
+</div>
+<!-- Manual Destination Search Bar -->
+<div class="flow-search-bar active-search">
+<span class="search-icon">🔍</span>
+<input autocomplete="off" class="search-input" id="destination-search-input" placeholder="Search destination (e.g. Pune Airport, Hinjawadi, Mumbai)..." type="text"/>
+<button class="btn-search-go" id="btn-search-go" onclick="submitDestinationSearch()" title="Preview route">
               ROUTE ➔
             </button>
-          </div>
+</div>
+<!-- Recent Searches Section -->
+<div class="recent-searches-section">
+<div class="recent-header">
+<span class="recent-title"><span class="recent-icon">🕒</span> RECENT SEARCHES</span>
+<span class="recent-tag">PROTOTYPE</span>
+</div>
+<div class="recent-searches-list">
+<!-- Recent 1: Pune Airport -->
+<div class="recent-item" id="dest-card-pune-airport" onclick="selectPuneRoute('pune-airport')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Pune Airport</div>
+<div class="recent-item-corridor">Shivajinagar via Sangamwadi &amp; Nagar Road Corridor</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">8.6 km</span>
+            <span class="recent-pill-time">10 min</span>
+<span class="recent-arrow">➔</span>
+</div>
+</div>
+<!-- Recent 2: Viman Nagar -->
+<div class="recent-item" id="dest-card-viman-nagar" onclick="selectPuneRoute('viman-nagar')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Viman Nagar</div>
+<div class="recent-item-corridor">FC Road via Bund Garden &amp; Koregaon Park North</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">9.2 km</span>
+            <span class="recent-pill-time">11 min</span>
+<span class="recent-arrow">➔</span>
+</div>
+</div>
+<!-- Recent 3: Pune Railway Station -->
+<div class="recent-item" id="dest-card-pune-station" onclick="selectPuneRoute('pune-station')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Pune Railway Station</div>
+<div class="recent-item-corridor">Shivajinagar via Sangam Bridge &amp; Sassoon Rd</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">4.2 km</span>
+            <span class="recent-pill-time">5 min</span>
+<span class="recent-arrow">➔</span>
+</div>
+</div>
+<!-- Recent 4: Shivajinagar -->
+<div class="recent-item" id="dest-card-shivajinagar" onclick="selectPuneRoute('shivajinagar')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Shivajinagar</div>
+<div class="recent-item-corridor">FC Road / JM Road Transit Corridor</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">3.8 km</span>
+            <span class="recent-pill-time">5 min</span>
+<span class="recent-arrow">➔</span>
+</div>
+</div>
+<!-- Recent 5: Hinjawadi Phase 1 -->
+<div class="recent-item" id="dest-card-hinjawadi" onclick="selectPuneRoute('hinjawadi')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Hinjawadi Phase 1</div>
+<div class="recent-item-corridor">Pune University Circle via Aundh &amp; Wakad</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">17.4 km</span>
+            <span class="recent-pill-time">21 min</span>
+<span class="recent-arrow">➔</span>
+</div>
+</div>
+<!-- Recent 6: Wakad -->
+<div class="recent-item" id="dest-card-wakad" onclick="selectPuneRoute('wakad')">
+<div class="recent-item-icon">📍</div>
+<div class="recent-item-info">
+<div class="recent-item-name">Wakad</div>
+<div class="recent-item-corridor">Pune University Circle via Aundh</div>
+</div>
+<div class="recent-item-metrics">
+<span class="recent-pill-dist">15.2 km</span>
+            <span class="recent-pill-time">18 min</span>
+<span class="recent-arrow">→</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flow-notice-footer">
+<span class="notice-icon">ℹ</span>
+<span><strong>PROTOTYPE NOTICE:</strong> Type any destination or select a recent search. Vehicle kinematics driven by benchmark trajectory.</span>
+</div>
+</div>
+<!-- ================= SCREEN 2: ROUTE PREVIEW (PROTOTYPE ROUTE) ================= -->
+<div class="flow-overlay-card flow-preview-card hidden" id="flow-view-preview">
+<div class="flow-card-header">
+<div class="flow-badge-wrap">
+<span class="tag-prototype">PROTOTYPE ROUTE</span>
+<span class="geo-context-tag">PUNE, MAHARASHTRA</span>
+</div>
+<div class="routing-inputs">
+<div class="routing-row">
+<div class="routing-icon origin">○</div>
+<div class="routing-field origin-field" id="preview-route-origin">Shivajinagar, Pune</div>
+</div>
+<div class="routing-separator">
+<div class="routing-dots">⋮</div>
 
-          <!-- Recent Searches Section -->
-          <div class="recent-searches-section">
-            <div class="recent-header">
-              <span class="recent-title"><span class="recent-icon">🕒</span> RECENT SEARCHES</span>
-              <span class="recent-tag">PROTOTYPE</span>
-            </div>
-            <div class="recent-searches-list">
-              
-              <!-- Recent 1: Pune Airport -->
-              <div class="recent-item" id="dest-card-pune-airport" onclick="selectPuneRoute('pune-airport')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Pune Airport</div>
-                  <div class="recent-item-corridor">Shivajinagar via Sangamwadi & Nagar Road Corridor</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">8.6 km</span>
-                  <span class="recent-pill-time">18 min</span>
-                  <span class="recent-arrow">➔</span>
-                </div>
-              </div>
-
-              <!-- Recent 2: Viman Nagar -->
-              <div class="recent-item" id="dest-card-viman-nagar" onclick="selectPuneRoute('viman-nagar')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Viman Nagar</div>
-                  <div class="recent-item-corridor">FC Road via Bund Garden & Koregaon Park North</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">9.2 km</span>
-                  <span class="recent-pill-time">26 min</span>
-                  <span class="recent-arrow">➔</span>
-                </div>
-              </div>
-
-              <!-- Recent 3: Pune Railway Station -->
-              <div class="recent-item" id="dest-card-pune-station" onclick="selectPuneRoute('pune-station')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Pune Railway Station</div>
-                  <div class="recent-item-corridor">Shivajinagar via Sangam Bridge & Sassoon Rd</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">4.2 km</span>
-                  <span class="recent-pill-time">14 min</span>
-                  <span class="recent-arrow">➔</span>
-                </div>
-              </div>
-
-              <!-- Recent 4: Shivajinagar -->
-              <div class="recent-item" id="dest-card-shivajinagar" onclick="selectPuneRoute('shivajinagar')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Shivajinagar</div>
-                  <div class="recent-item-corridor">FC Road / JM Road Transit Corridor</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">3.8 km</span>
-                  <span class="recent-pill-time">12 min</span>
-                  <span class="recent-arrow">➔</span>
-                </div>
-              </div>
-
-              <!-- Recent 5: Hinjawadi Phase 1 -->
-              <div class="recent-item" id="dest-card-hinjawadi" onclick="selectPuneRoute('hinjawadi')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Hinjawadi Phase 1</div>
-                  <div class="recent-item-corridor">Pune University Circle via Aundh & Wakad</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">17.4 km</span>
-                  <span class="recent-pill-time">42 min</span>
-                  <span class="recent-arrow">➔</span>
-                </div>
-              </div>
-
-              <!-- Recent 6: Wakad -->
-              <div class="recent-item" id="dest-card-wakad" onclick="selectPuneRoute('wakad')">
-                <div class="recent-item-icon">📍</div>
-                <div class="recent-item-info">
-                  <div class="recent-item-name">Wakad</div>
-                  <div class="recent-item-corridor">Pune University Circle via Aundh</div>
-                </div>
-                <div class="recent-item-metrics">
-                  <span class="recent-pill-dist">15.2 km</span>
-                  <span class="recent-pill-time">25 min</span>
-                  <span class="recent-arrow">→</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="flow-notice-footer">
-            <span class="notice-icon">ℹ</span>
-            <span><strong>PROTOTYPE NOTICE:</strong> Type any destination or select a recent search. Vehicle kinematics driven by benchmark trajectory.</span>
-          </div>
-        </div>
-
-        <!-- ================= SCREEN 2: ROUTE PREVIEW (PROTOTYPE ROUTE) ================= -->
-        <div id="flow-view-preview" class="flow-overlay-card flow-preview-card hidden">
-          <div class="flow-card-header">
-            <div class="flow-badge-wrap">
-              <span class="tag-prototype">PROTOTYPE ROUTE</span>
-              <span class="geo-context-tag">PUNE, MAHARASHTRA</span>
-            </div>
-            <div class="routing-inputs">
-              <div class="routing-row">
-                <div class="routing-icon origin">○</div>
-                <div class="routing-field origin-field" id="preview-route-origin">Shivajinagar, Pune</div>
-              </div>
-              <div class="routing-separator">
-                <div class="routing-dots">⋮</div>
-                <div class="routing-swap">⇅</div>
-              </div>
-              <div class="routing-row">
-                <div class="routing-icon dest">📍</div>
-                <div class="routing-field dest-field" id="preview-route-dest">Pune Airport</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Route Metrics Strip -->
-          <div class="preview-metrics-strip">
-            <div class="preview-metric-box">
-              <span class="p-met-val" id="preview-dist-val">8.6 <span class="p-met-unit">KM</span></span>
-              <span class="p-met-label">DISTANCE</span>
-            </div>
-            <div class="preview-metric-box">
-              <span class="p-met-val" id="preview-time-val">18 <span class="p-met-unit">MIN</span></span>
-              <span class="p-met-label">ESTIMATED TIME</span>
-            </div>
-            <div class="preview-metric-box">
-              <span class="p-met-val" id="preview-arrival-val">5:42 <span class="p-met-unit">PM</span></span>
-              <span class="p-met-label">ESTIMATED ARRIVAL</span>
-            </div>
-            <div class="preview-metric-box highlight">
-              <span class="p-met-val">IMU READY</span>
-              <span class="p-met-label">INERTIAL BACKUP</span>
-            </div>
-          </div>
-
-          <!-- Route Waypoint Highlights -->
-          <div class="preview-sectors-card">
-            <div class="sector-item">
-              <span class="sector-dot start">●</span>
-              <div class="sector-info">
-                <div class="sector-name" id="preview-sector-1-title">Sector 1: Departure via Sancheti Flyover & Sangamwadi Rd</div>
-                <div class="sector-desc" id="preview-sector-1-desc">Open-sky multi-constellation GNSS lock active. Inertial baseline steady.</div>
-              </div>
-            </div>
-            <div class="sector-item">
-              <span class="sector-dot outage">⚡</span>
-              <div class="sector-info">
-                <div class="sector-name" id="preview-sector-2-title">Sector 2: Nagar Road Underpass Corridor (GNSS Outage Demo)</div>
-                <div class="sector-desc" id="preview-sector-2-desc">Test seamless transition to inertial dead reckoning via SIMULATE GNSS OUTAGE.</div>
-              </div>
-            </div>
-            <div class="sector-item">
-              <span class="sector-dot end">🏁</span>
-              <div class="sector-info">
-                <div class="sector-name" id="preview-sector-3-title">Sector 3: Airport Road Approach & Terminal 1 Loop</div>
-                <div class="sector-desc" id="preview-sector-3-desc">Satellite signal reacquisition and multi-sensor fusion re-engagement.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="preview-actions-row">
-            <button class="btn-start-navigation" onclick="startNavigation()">
-              <span class="btn-start-icon">🚀</span>
-              <span>START NAVIGATION</span>
-            </button>
-            <button class="btn-back-destination" onclick="setFlowStep('destination')">
-              <span>← Change Destination</span>
-            </button>
-          </div>
-
-          <div class="flow-notice-footer">
-            <span class="notice-icon">ℹ</span>
-            <span><strong>PROTOTYPE ROUTE:</strong> Pune route follows OSM road geometry; movement is driven by benchmark trajectory kinematics.</span>
-          </div>
-        </div>
-
-        <!-- ================= SCREEN 3: LIVE NAVIGATION HUD OVERLAYS ================= -->
-
-        <!-- Top Turn-by-Turn Instruction Card -->
-        <div class="nav-instruction-card" id="nav-instruction-card">
-          <div class="instruction-icon-box" id="instruction-icon">⬆</div>
-          <div class="instruction-text-group">
-            <div class="instruction-dist" id="instruction-dist">In 400m</div>
-            <div class="instruction-title" id="instruction-title">Keep right on Sancheti Hospital Flyover</div>
-            <div class="instruction-sub" id="instruction-sub">Pune Airport Corridor · Continuous Inertial Monitoring Active</div>
-          </div>
-          <span class="maneuver-prototype-tag">PROTOTYPE HUD</span>
-        </div>
-
-        <!-- Live Maneuver Compass Tag (Bottom Right) -->
-        <div class="nav-hud-compass" id="nav-hud-compass">
-          <div class="compass-circle">
-            <span class="compass-n">N</span>
-            <div class="compass-arrow-wrap" id="compass-arrow-wrap">
-              <span class="compass-pointer"></span>
-            </div>
-          </div>
-          <div class="compass-readout" id="compass-bearing-readout">028° NNE</div>
-        </div>
-
-        <!-- Speed Controls (Visible during navigation) -->
-        <div class="speed-control-panel hidden" id="speed-control-panel">
-          <button class="speed-btn active" id="btn-speed-1" onclick="setPlaybackSpeed(1)">1x</button>
-          <button class="speed-btn" id="btn-speed-15" onclick="setPlaybackSpeed(1.5)">1.5x</button>
-          <button class="speed-btn" id="btn-speed-2" onclick="setPlaybackSpeed(2)">2x</button>
-        </div>
-
-        <!-- Bottom Navigation Dock Card -->
-        <div class="nav-bottom-card" id="nav-bottom-card">
-          
-          <!-- Left: Live Countdown Stats -->
-          <div class="nav-dock-trip">
-            <div class="trip-primary">
-              <span class="trip-time" id="dock-time-remaining">18 min</span>
-              <span class="trip-sep">·</span>
-              <span class="trip-dist" id="dock-dist-remaining">8.6 km</span>
-            </div>
-            <div class="trip-secondary">
-              <span class="trip-arrival">Arrive <strong id="dock-arrive-time">5:42 PM</strong></span>
-              <span class="trip-sep">·</span>
-              <span class="trip-travelled"><span id="dock-dist-travelled">0.0</span> km done</span>
-            </div>
-          </div>
-
-          <!-- Center: Speedometer & Navigation Mode -->
-          <div class="nav-dock-telemetry">
-            <div class="dock-speed-block">
-              <span class="speed-value" id="nav-speed-display">0.0</span>
-              <span class="speed-unit">KM/H</span>
-            </div>
-            <div class="dock-mode-block">
-              <div class="dock-mode-row">
-                <span class="hud-mode-dot" id="hud-mode-dot"></span>
-                <span class="dock-mode-name" id="hud-mode-title">GNSS AVAILABLE</span>
-              </div>
-              <div class="hud-outage-alert hidden" id="hud-outage-alert">NAVIGATING WITHOUT GPS</div>
-            </div>
-          </div>
-
-          <!-- Right: Outage Toggle & Exit -->
-          <div class="nav-dock-actions">
-            <button id="btn-dock-outage" class="btn-dock-outage" onclick="toggleGnssOutage()">
-              <span class="dock-outage-bolt">⚡</span>
-              <span id="dock-outage-text">SIMULATE GNSS OUTAGE</span>
-            </button>
-
-            <button class="btn-dock-exit" onclick="exitNavigation()" title="Exit navigation and return to destination search">
+</div>
+<div class="routing-row">
+<div class="routing-icon dest">📍</div>
+<div class="routing-field dest-field" id="preview-route-dest">Pune Airport</div>
+</div>
+</div>
+</div>
+<!-- Route Metrics Strip -->
+<div class="preview-metrics-strip">
+<div class="preview-metric-box">
+<span class="p-met-val" id="preview-dist-val">8.6 <span class="p-met-unit">KM</span></span>
+<span class="p-met-label">DISTANCE</span>
+</div>
+<div class="preview-metric-box">
+<span class="p-met-val" id="preview-time-val">10 <span class="p-met-unit">MIN</span></span>
+<span class="p-met-label">ESTIMATED TIME</span>
+</div>
+<div class="preview-metric-box">
+<span class="p-met-val" id="preview-arrival-val">--:-- <span class="p-met-unit"></span></span>
+<span class="p-met-label">ESTIMATED ARRIVAL</span>
+</div>
+<div class="preview-metric-box highlight">
+<span class="p-met-val">IMU READY</span>
+<span class="p-met-label">INERTIAL BACKUP</span>
+</div>
+</div>
+<!-- Route Waypoint Highlights -->
+<div class="preview-sectors-card">
+<div class="sector-item">
+<span class="sector-dot start">●</span>
+<div class="sector-info">
+<div class="sector-name" id="preview-sector-1-title">Sector 1: Departure via Sancheti Flyover &amp; Sangamwadi Rd</div>
+<div class="sector-desc" id="preview-sector-1-desc">Open-sky multi-constellation GNSS lock active. Inertial baseline steady.</div>
+</div>
+</div>
+<div class="sector-item">
+<span class="sector-dot outage">⚡</span>
+<div class="sector-info">
+<div class="sector-name" id="preview-sector-2-title">Sector 2: Nagar Road Underpass Corridor (GNSS Outage Demo)</div>
+<div class="sector-desc" id="preview-sector-2-desc">Test seamless transition to inertial dead reckoning via SIMULATE GNSS OUTAGE.</div>
+</div>
+</div>
+<div class="sector-item">
+<span class="sector-dot end">🏁</span>
+<div class="sector-info">
+<div class="sector-name" id="preview-sector-3-title">Sector 3: Airport Road Approach &amp; Terminal 1 Loop</div>
+<div class="sector-desc" id="preview-sector-3-desc">Satellite signal reacquisition and multi-sensor fusion re-engagement.</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="preview-actions-row">
+<button class="btn-start-navigation" onclick="startNavigation()">
+<span class="btn-start-icon">🚀</span>
+<span>START NAVIGATION</span>
+</button>
+<button class="btn-back-destination" onclick="setFlowStep('destination')">
+<span>← Change Destination</span>
+</button>
+</div>
+<div class="flow-notice-footer">
+<span class="notice-icon">ℹ</span>
+<span><strong>PROTOTYPE ROUTE:</strong> Pune route follows OSM road geometry; movement is driven by benchmark trajectory kinematics.</span>
+</div>
+</div>
+<!-- ================= SCREEN 3: LIVE NAVIGATION HUD OVERLAYS ================= -->
+<!-- Top Turn-by-Turn Instruction Card -->
+<div class="nav-instruction-card" id="nav-instruction-card">
+<div class="instruction-icon-box" id="instruction-icon">⬆</div>
+<div class="instruction-text-group">
+<div class="instruction-dist" id="instruction-dist">In 400m</div>
+<div class="instruction-title" id="instruction-title">Keep right on Sancheti Hospital Flyover</div>
+<div class="instruction-sub" id="instruction-sub">Pune Airport Corridor · Continuous Inertial Monitoring Active</div>
+</div>
+<span class="maneuver-prototype-tag">PROTOTYPE HUD</span>
+</div>
+<!-- Live Maneuver Compass Tag (Bottom Right) -->
+<div class="nav-hud-compass" id="nav-hud-compass">
+<div class="compass-circle">
+<span class="compass-n">N</span>
+<div class="compass-arrow-wrap" id="compass-arrow-wrap">
+<span class="compass-pointer"></span>
+</div>
+</div>
+<div class="compass-readout" id="compass-bearing-readout">028° NNE</div>
+</div>
+<!-- Speed Controls (Visible during navigation) -->
+<div class="speed-control-panel hidden" id="speed-control-panel">
+<button class="speed-btn active" id="btn-speed-1" onclick="setPlaybackSpeed(1)">1x</button>
+<button class="speed-btn" id="btn-speed-15" onclick="setPlaybackSpeed(1.5)">1.5x</button>
+<button class="speed-btn" id="btn-speed-2" onclick="setPlaybackSpeed(2)">2x</button>
+</div>
+<!-- Bottom Navigation Dock Card -->
+<div class="nav-bottom-card" id="nav-bottom-card">
+<!-- Left: Live Countdown Stats -->
+<div class="nav-dock-trip">
+<div class="trip-primary">
+<span class="trip-time" id="dock-time-remaining">10 min</span> <span class="trip-sep"></span> <span style="font-size:0.75rem; color:var(--color-muted-gray);">Ref Speed: 50 km/h</span>
+<span class="trip-sep">·</span>
+<span class="trip-dist" id="dock-dist-remaining">8.6 km</span>
+</div>
+<div class="trip-secondary">
+<span class="trip-arrival">Current Time: <strong id="dock-current-time">--:--</strong></span> <span class="trip-sep"></span> <span class="trip-arrival">Arrive <strong id="dock-arrive-time">--:--</strong></span>
+<span class="trip-sep">·</span>
+<span class="trip-travelled"><span id="dock-dist-travelled">0.0</span> km done</span>
+</div>
+</div>
+<!-- Center: Speedometer & Navigation Mode -->
+<div class="nav-dock-telemetry">
+<div class="dock-speed-block">
+<span class="speed-value" id="nav-speed-display">0.0</span>
+<span class="speed-unit">KM/H</span>
+</div>
+<div class="dock-mode-block">
+<div class="dock-mode-row">
+<span class="hud-mode-dot" id="hud-mode-dot"></span>
+<span class="dock-mode-name" id="hud-mode-title">GNSS AVAILABLE</span>
+</div>
+<div class="hud-outage-alert hidden" id="hud-outage-alert">NAVIGATING WITHOUT GPS</div>
+</div>
+</div>
+<!-- Right: Outage Toggle & Exit -->
+<div class="nav-dock-actions">
+<button class="btn-dock-outage" id="btn-dock-outage" onclick="toggleGnssOutage()">
+<span class="dock-outage-bolt">⚡</span>
+<span id="dock-outage-text">SIMULATE GNSS OUTAGE</span>
+</button>
+<button class="btn-dock-exit" onclick="exitNavigation()" title="Exit navigation and return to destination search">
               ✕ Exit
             </button>
-          </div>
-
-        </div>
-
-        <!-- Destination Reached Completion Card -->
-        <div id="nav-arrival-card" class="nav-arrival-card hidden">
-          <div class="arrival-icon">✨</div>
-          <div class="arrival-content">
-            <div class="arrival-badge">You have arrived</div>
-            <h3 class="arrival-title" id="arrival-title">You have arrived at Pune Airport Terminal 1</h3>
-            <p class="arrival-desc" id="arrival-desc">
+</div>
+</div>
+<!-- Destination Reached Completion Card -->
+<div class="nav-arrival-card hidden" id="nav-arrival-card">
+<div class="arrival-icon">✨</div>
+<div class="arrival-content">
+<div class="arrival-badge">You have arrived</div>
+<h3 class="arrival-title" id="arrival-title">You have arrived at Pune Airport Terminal 1</h3>
+<p class="arrival-desc" id="arrival-desc">
               Trip completed successfully. Inertial dead reckoning maintained position continuity through simulated GNSS-denied sectors.
             </p>
-            <div class="arrival-actions">
-              <button class="btn-arrival-new" onclick="setFlowStep('destination')">🗺 Select New Destination</button>
-              <button class="btn-arrival-evidence" onclick="switchAppTab('evidence')">📊 View System Evidence ➔</button>
-            </div>
-          </div>
-        </div>
-
-      </div> <!-- /nav-map-viewport -->
-
-    </div> <!-- /view-navigation -->
-
-
-    <!-- ==========================================================================
+<div class="arrival-actions">
+<button class="btn-arrival-new" onclick="setFlowStep('destination')">🗺 Select New Destination</button>
+<button class="btn-arrival-evidence" onclick="switchAppTab('evidence')">📊 View System Evidence ➔</button>
+</div>
+</div>
+</div>
+</div> <!-- /nav-map-viewport -->
+</div> <!-- /view-navigation -->
+<!-- ==========================================================================
          VIEW 2: SYSTEM EVIDENCE & BENCHMARKS (SECONDARY TAB)
          Preserves all Phase 1–3 Engineering Calculations, Canvases & Findings
          ========================================================================== -->
-    <div id="view-evidence" class="app-view hidden">
-      
-      <!-- Engineering Sections Navigation -->
-      <div class="evidence-subnav">
-        <nav class="nav-links" aria-label="Engineering Sections">
-          <a href="#overview" class="nav-link active">01 Overview</a>
-          <a href="#trajectory" class="nav-link">02 Trajectory</a>
-          <a href="#alignment" class="nav-link">03 Alignment</a>
-          <a href="#drift" class="nav-link">04 Drift Analysis</a>
-          <a href="#architecture" class="nav-link">05 Architecture</a>
-          <a href="#roadmap" class="nav-link">06 Roadmap</a>
-          <a href="#insights" class="nav-link">07 Insights</a>
-        </nav>
-      </div>
+<div class="app-view hidden" id="view-evidence">
+<!-- Engineering Sections Navigation -->
+<div class="evidence-subnav">
+<nav aria-label="Engineering Sections" class="nav-links">
+<a class="nav-link active" href="#overview">01 Overview</a>
+<a class="nav-link" href="#trajectory">02 Trajectory</a>
+<a class="nav-link" href="#alignment">03 Alignment</a>
+<a class="nav-link" href="#drift">04 Drift Analysis</a>
+<a class="nav-link" href="#architecture">05 Architecture</a>
 
-      <!-- ================= 01 DATASET OVERVIEW & METRICS ================= -->
-      <section id="overview" class="section overview-section">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <span class="section-num">01</span>
-            <div>
-              <h2 class="section-title">ENGINEERING EVIDENCE &amp; BENCHMARKS</h2>
-              <p class="section-subtitle">Empirical Ground-Truth Dataset Analysis &amp; Verified Phase 1–3 Outputs</p>
-            </div>
-          </div>
 
-        <div class="evidence-top-controls">
-          <div class="dataset-switcher" role="group" aria-label="Dataset Switcher">
-            <span class="switcher-label">DATASET:</span>
-            <button id="btn-vta1a" class="btn-dataset active" onclick="switchDataset('S-Vta1a')">S-Vta1a</button>
-            <button id="btn-vta2" class="btn-dataset" onclick="switchDataset('S-Vta2')">S-Vta2</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dataset Description Bar -->
-      <div class="evidence-dataset-meta">
-        <span class="meta-label">BENCHMARK RUN:</span>
-        <strong id="hero-dataset-name">S-Vta1a</strong>
-        <span class="meta-sep">/</span>
-        <span id="hero-dataset-desc">Driver E (Aggressive) — Mixed UK Motorways & Arterial Roundabouts</span>
-        <span class="meta-sep">/</span>
-        <span class="meta-frozen">BACKEND FROZEN (21/21 TESTS PASSING)</span>
-      </div>
-
-      <!-- Over-sized Dynamic Metrics Ribbon -->
-      <div class="metrics-ribbon">
-        <div class="metric-block">
-          <div class="metric-num"><span id="val-distance">40.55</span><span class="metric-unit">KM</span></div>
-          <div class="metric-label">DISTANCE TRAVELLED</div>
-          <div class="metric-sub">Verified Geodetic ENU Sum</div>
-        </div>
-
-        <div class="metric-block">
-          <div class="metric-num"><span id="val-duration">42.8</span><span class="metric-unit">MIN</span></div>
-          <div class="metric-label">RUN DURATION</div>
-          <div class="metric-sub" id="val-samples">25,676 samples @ 10 Hz</div>
-        </div>
-
-        <div class="metric-block">
-          <div class="metric-num"><span id="val-peak-speed">103.6</span><span class="metric-unit">KM/H</span></div>
-          <div class="metric-label">PEAK SPEED</div>
-          <div class="metric-sub">Mean: <span id="val-mean-speed">56.5</span> km/h</div>
-        </div>
-
-        <div class="metric-block accent">
-          <div class="metric-num warning-text"><span id="val-drift-pct">869.0</span><span class="metric-unit">%</span></div>
-          <div class="metric-label">INS DRIFT (% OF DISTANCE)</div>
-          <div class="metric-sub">Classical Dead Reckoning Baseline</div>
-        </div>
-      </div>
-
-      <!-- Honest System Status Block -->
-      <div class="system-status-container">
-        <div class="status-header">
-          <span class="block-tag">SYSTEM ARCHITECTURE STATUS</span>
-          <span class="block-note">Honest Operational State · Phases 1–3 Complete · Backend Frozen</span>
-        </div>
-
-        <div class="status-grid">
-          <!-- Phase 1 -->
-          <div class="status-card complete">
-            <div class="card-status-badge">COMPLETE</div>
-            <div class="card-phase">PHASE 01</div>
-            <div class="card-title">IO-VNBD Data Pipeline</div>
-            <div class="card-detail">Ingestion, WGS84→ENU geodetic projection, timestamp jitter audit (5/5 tests passed).</div>
-          </div>
-
-          <!-- Phase 2 -->
-          <div class="status-card complete">
-            <div class="card-status-badge">COMPLETE</div>
-            <div class="card-phase">PHASE 02</div>
-            <div class="card-title">Classical INS Baseline</div>
-            <div class="card-detail">Strapdown quaternion attitude propagation & trapezoidal integration (12/12 tests passed).</div>
-          </div>
-
-          <!-- Phase 3 -->
-          <div class="status-card complete">
-            <div class="card-status-badge">COMPLETE</div>
-            <div class="card-phase">PHASE 03</div>
-            <div class="card-title">Phone-Vehicle Roll/Pitch Alignment</div>
-            <div class="card-detail">Rodrigues minimal-rotation leveling (det R = 1.000000, ortho err 10⁻¹⁶, 21/21 tests passed).</div>
-          </div>
-
-          <!-- Phase 4 (Planned) -->
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED</div>
-            <div class="card-phase">PHASE 04</div>
-            <div class="card-title">AI Speed Estimation</div>
-            <div class="card-detail">Spectrogram CNN/LSTM forward speed prediction directly from smartphone vibrations.</div>
-          </div>
-
-          <!-- Phase 7 (Planned) -->
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED</div>
-            <div class="card-phase">PHASE 07</div>
-            <div class="card-title">EKF / UKF Sensor Fusion</div>
-            <div class="card-detail">Extended Kalman filter binding accelerometer double-integration drift.</div>
-          </div>
-
-          <!-- Phase 8 (Planned) -->
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED</div>
-            <div class="card-phase">PHASE 08</div>
-            <div class="card-title">Non-Holonomic Constraints</div>
-            <div class="card-detail">Zero lateral/vertical velocity constraints (v_y ≈ 0, v_z ≈ 0) in vehicle FLU frame.</div>
-          </div>
-        </div>
-      </div>
-
-      </section>
-
-      <!-- ================= 02 TRAJECTORY COMPARISON ================= -->
-      <section id="trajectory" class="section trajectory-section">
-        <div class="evidence-sub-block">
-          <div class="section-header">
-            <div class="section-title-wrap">
-              <span class="section-num">02</span>
-              <div>
-                <h3 class="section-title">TRAJECTORY COMPARISON</h3>
-                <p class="section-subtitle">Ground Truth vs Classical Pure INS (Phase 2) vs Leveled Vehicle INS (Phase 3)</p>
-              </div>
-            </div>
-
-            <div class="trajectory-controls">
-              <div class="control-group">
-                <span class="control-label">VIEW SCALE:</span>
-                <button id="btn-scale-full" class="btn-toggle active" onclick="setScaleMode('full')">Full Scale (Drift Visible)</button>
-                <button id="btn-scale-zoom" class="btn-toggle" onclick="setScaleMode('zoom')">Zoom to Ground Truth</button>
-              </div>
-
-              <div class="control-group layers">
-                <label class="layer-toggle gt">
-                  <input type="checkbox" id="layer-gt" checked onchange="toggleLayer('gt')">
-                  <span class="indicator gt-ind"></span> Ground Truth (Real GNSS/VBOX)
+</nav>
+</div>
+<!-- ================= 01 DATASET OVERVIEW & METRICS ================= -->
+<section class="section overview-section" id="overview">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">01</span>
+<div>
+<h2 class="section-title">ENGINEERING EVIDENCE &amp; BENCHMARKS</h2>
+<p class="section-subtitle">Empirical Ground-Truth Dataset Analysis &amp; Verified Phase 1–3 Outputs</p>
+</div>
+</div>
+<div class="evidence-top-controls">
+<div aria-label="Dataset Switcher" class="dataset-switcher" role="group">
+<span class="switcher-label">DATASET:</span>
+<button class="btn-dataset active" id="btn-vta1a" onclick="switchDataset('S-Vta1a')">S-Vta1a</button>
+<button class="btn-dataset" id="btn-vta2" onclick="switchDataset('S-Vta2')">S-Vta2</button>
+</div>
+</div>
+</div>
+<!-- Dataset Description Bar -->
+<div class="evidence-dataset-meta">
+<span class="meta-label">BENCHMARK RUN:</span>
+<strong id="hero-dataset-name">S-Vta1a</strong>
+<span class="meta-sep">/</span>
+<span id="hero-dataset-desc">Driver E (Aggressive) — Mixed UK Motorways &amp; Arterial Roundabouts</span>
+<span class="meta-sep">/</span>
+<span class="meta-frozen">BACKEND FROZEN (21/21 TESTS PASSING)</span>
+</div>
+<!-- Over-sized Dynamic Metrics Ribbon -->
+<div class="metrics-ribbon">
+<div class="metric-block">
+<div class="metric-num"><span id="val-distance">40.55</span><span class="metric-unit">KM</span></div>
+<div class="metric-label">DISTANCE TRAVELLED</div>
+<div class="metric-sub">Verified Geodetic ENU Sum</div>
+</div>
+<div class="metric-block">
+<div class="metric-num"><span id="val-duration">42.8</span><span class="metric-unit">MIN</span></div>
+<div class="metric-label">RUN DURATION</div>
+<div class="metric-sub" id="val-samples">25,676 samples @ 10 Hz</div>
+</div>
+<div class="metric-block">
+<div class="metric-num"><span id="val-peak-speed">103.6</span><span class="metric-unit">KM/H</span></div>
+<div class="metric-label">PEAK SPEED</div>
+<div class="metric-sub">Mean: <span id="val-mean-speed">56.5</span> km/h</div>
+</div>
+<div class="metric-block accent">
+<div class="metric-num warning-text"><span id="val-drift-pct">37.0</span><span class="metric-unit">%</span></div>
+<div class="metric-label">INS DRIFT (% OF DISTANCE)</div>
+<div class="metric-sub">Classical Dead Reckoning Baseline</div>
+</div>
+</div>
+<!-- Honest System Status Block -->
+<div class="system-status-container">
+<div class="status-header">
+<span class="block-tag">SYSTEM ARCHITECTURE STATUS</span>
+<span class="block-note">Honest Operational State · Phases 1–3 Complete · Backend Frozen</span>
+</div>
+<div class="status-grid">
+<!-- Phase 1 -->
+<div class="status-card complete">
+<div class="card-status-badge">COMPLETE</div>
+<div class="card-phase">PHASE 01</div>
+<div class="card-title">IO-VNBD Data Pipeline</div>
+<div class="card-detail">Ingestion, WGS84→ENU geodetic projection, timestamp jitter audit (5/5 tests passed).</div>
+</div>
+<!-- Phase 2 -->
+<div class="status-card complete">
+<div class="card-status-badge">COMPLETE</div>
+<div class="card-phase">PHASE 02</div>
+<div class="card-title">Classical INS Baseline</div>
+<div class="card-detail">Strapdown quaternion attitude propagation &amp; trapezoidal integration (12/12 tests passed).</div>
+</div>
+<!-- Phase 3 -->
+<div class="status-card complete">
+<div class="card-status-badge">COMPLETE</div>
+<div class="card-phase">PHASE 03</div>
+<div class="card-title">Phone-Vehicle Roll/Pitch Alignment</div>
+<div class="card-detail">Rodrigues minimal-rotation leveling (det R = 1.000000, ortho err 10⁻¹⁶, 21/21 tests passed).</div>
+</div>
+<!-- Phase 4 (Planned) -->
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED</div>
+<div class="card-phase">PHASE 04</div>
+<div class="card-title">AI Speed Estimation</div>
+<div class="card-detail">Spectrogram CNN/LSTM forward speed prediction directly from smartphone vibrations.</div>
+</div>
+<!-- Phase 7 (Planned) -->
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED</div>
+<div class="card-phase">PHASE 07</div>
+<div class="card-title">EKF / UKF Sensor Fusion</div>
+<div class="card-detail">Extended Kalman filter binding accelerometer double-integration drift.</div>
+</div>
+<!-- Phase 8 (Planned) -->
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED</div>
+<div class="card-phase">PHASE 08</div>
+<div class="card-title">Non-Holonomic Constraints</div>
+<div class="card-detail">Zero lateral/vertical velocity constraints (v_y ≈ 0, v_z ≈ 0) in vehicle FLU frame.</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ================= 02 TRAJECTORY COMPARISON ================= -->
+<section class="section trajectory-section" id="trajectory">
+<div class="evidence-sub-block">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">02</span>
+<div>
+<h3 class="section-title">TRAJECTORY COMPARISON</h3>
+<p class="section-subtitle">Ground Truth vs Classical Pure INS (Phase 2) vs Leveled Vehicle INS (Phase 3)</p>
+</div>
+</div>
+<div class="trajectory-controls">
+<div class="control-group">
+<span class="control-label">VIEW SCALE:</span>
+<button class="btn-toggle active" id="btn-scale-full" onclick="setScaleMode('full')">Full Scale (Drift Visible)</button>
+<button class="btn-toggle" id="btn-scale-zoom" onclick="setScaleMode('zoom')">Zoom to Ground Truth</button>
+</div>
+<div class="control-group layers">
+<label class="layer-toggle gt">
+<input checked="" id="layer-gt" onchange="toggleLayer('gt')" type="checkbox"/>
+<span class="indicator gt-ind"></span> Ground Truth (Real GNSS/VBOX)
                 </label>
-                <label class="layer-toggle p2">
-                  <input type="checkbox" id="layer-p2" checked onchange="toggleLayer('p2')">
-                  <span class="indicator p2-ind"></span> Phase 2: Pure Body INS
+<label class="layer-toggle p2">
+<input checked="" id="layer-p2" onchange="toggleLayer('p2')" type="checkbox"/>
+<span class="indicator p2-ind"></span> Phase 2: Pure Body INS
                 </label>
-                <label class="layer-toggle p3">
-                  <input type="checkbox" id="layer-p3" checked onchange="toggleLayer('p3')">
-                  <span class="indicator p3-ind"></span> Phase 3: Leveled Vehicle INS
+<label class="layer-toggle p3">
+<input checked="" id="layer-p3" onchange="toggleLayer('p3')" type="checkbox"/>
+<span class="indicator p3-ind"></span> Phase 3: Leveled Vehicle INS
                 </label>
-              </div>
+</div>
+</div>
+</div>
+<div class="canvas-viewport">
+<canvas id="trajectory-canvas"></canvas>
+<div class="canvas-tooltip hidden" id="canvas-tooltip"></div>
+<div class="canvas-watermark" id="canvas-watermark">LOCAL ENU TANGENT PLANE (METERS)</div>
+</div>
+<div class="trajectory-caption">
+<div class="caption-icon">ℹ</div>
+<div class="caption-text">
+<strong>The Fundamental Navigation Problem:</strong> While ground truth covers <span id="caption-dist">40.55</span> km across public roads, classical dead reckoning without velocity aiding diverges to <span id="caption-err">352.36</span> km within <span id="caption-time">42.8</span> minutes due to double-integration of consumer MEMS sensor bias.
             </div>
-          </div>
-
-          <div class="canvas-viewport">
-            <canvas id="trajectory-canvas"></canvas>
-            <div id="canvas-tooltip" class="canvas-tooltip hidden"></div>
-            <div class="canvas-watermark" id="canvas-watermark">LOCAL ENU TANGENT PLANE (METERS)</div>
-          </div>
-
-          <div class="trajectory-caption">
-            <div class="caption-icon">ℹ</div>
-            <div class="caption-text">
-              <strong>The Fundamental Navigation Problem:</strong> While ground truth covers <span id="caption-dist">40.55</span> km across public roads, classical dead reckoning without velocity aiding diverges to <span id="caption-err">352.36</span> km within <span id="caption-time">42.8</span> minutes due to double-integration of consumer MEMS sensor bias.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= 03 ALIGNMENT ANALYSIS ================= -->
-      <section id="alignment" class="section alignment-section">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <span class="section-num">03</span>
-            <div>
-              <h2 class="section-title">PHONE-TO-VEHICLE ROLL/PITCH ALIGNMENT</h2>
-              <p class="section-subtitle">Gravity-Based Leveling (Phase 3)</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="alignment-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
-          <div class="alignment-info">
-            <div class="insight-box">
-              <div class="insight-tag">ALIGNMENT METHOD</div>
-              <h3 class="insight-headline">Gravity-based leveling via Rodrigues minimal rotation</h3>
-              <p class="insight-body">
+</div>
+</div>
+</section>
+<!-- ================= 03 ALIGNMENT ANALYSIS ================= -->
+<section class="section alignment-section" id="alignment">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">03</span>
+<div>
+<h2 class="section-title">PHONE-TO-VEHICLE ROLL/PITCH ALIGNMENT</h2>
+<p class="section-subtitle">Gravity-Based Leveling (Phase 3)</p>
+</div>
+</div>
+</div>
+<div class="alignment-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+<div class="alignment-info">
+<div class="insight-box">
+<div class="insight-tag">ALIGNMENT METHOD</div>
+<h3 class="insight-headline">Gravity-based leveling via Rodrigues minimal rotation</h3>
+<p class="insight-body">
                 The current Phase 3 implementation performs ONLY phone-to-vehicle roll and pitch alignment. 
                 By averaging the static acceleration vector, the smartphone's coordinate frame is rotated 
                 such that its Z-axis aligns with true gravity.
               </p>
-            </div>
-            
-            <div class="insight-box" style="margin-top: 1.5rem; background-color: #fdfbf7; border-left: 4px solid #C95232;">
-              <div class="insight-tag" style="color: #C95232;">CURRENT LIMITATION</div>
-              <h3 class="insight-headline">Absolute Yaw is NOT Solved</h3>
-              <ul class="insight-body" style="padding-left: 1.2rem; margin-top: 0.5rem;">
-                <li><strong>Why gravity isn't enough:</strong> Gravity only provides a 2D vertical reference (pitch and roll). Yaw exists in the orthogonal horizontal plane and cannot be observed from a static gravity vector alone.</li>
-                <li><strong>Why other sensors fail here:</strong> Magnetometers suffer from severe hard-iron/soft-iron distortions inside a metal vehicle chassis. Standard GNSS or motion-based yaw estimation can be highly unreliable due to urban canyons and vehicle dynamics.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="alignment-stats">
-            <div class="comparison-numbers" style="height: 100%;">
-              <div class="comp-col" style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-                <div class="comp-header">CURRENT SEQUENCE METRICS</div>
-                <div class="comp-metric" style="margin-top: 1rem;">
-                  <span class="comp-val" id="val-roll">-0.05</span><span class="comp-unit">°</span>
-                </div>
-                <div class="comp-sub">Estimated Roll Angle</div>
-                <div class="comp-metric" style="margin-top: 2rem;">
-                  <span class="comp-val" id="val-pitch">0.25</span><span class="comp-unit">°</span>
-                </div>
-                <div class="comp-sub">Estimated Pitch Angle</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="comparison-table-wrapper" style="background: white; border: 1px solid #EAE7E1; padding: 1.5rem; border-radius: 4px;">
-          <h3 style="margin-top: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: #2F2626;">Phase 2 vs Phase 3 (Both Sequences)</h3>
-          <p style="color: #4A4440; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;">
-            <strong>Engineering Interpretation:</strong> S-Vta1a shows a small improvement after roll/pitch alignment, while S-Vta2 shows regression. 
+</div>
+<div class="insight-box" style="margin-top: 1.5rem; background-color: #fdfbf7; border-left: 4px solid #C95232;">
+<div class="insight-tag" style="color: #C95232;">CURRENT LIMITATION</div>
+<h3 class="insight-headline">Absolute Yaw is NOT Solved</h3>
+<ul class="insight-body" style="padding-left: 1.2rem; margin-top: 0.5rem;">
+<li><strong>Why gravity isn't enough:</strong> Gravity only provides a 2D vertical reference (pitch and roll). Yaw exists in the orthogonal horizontal plane and cannot be observed from a static gravity vector alone.</li>
+<li><strong>Why other sensors fail here:</strong> Magnetometers suffer from severe hard-iron/soft-iron distortions inside a metal vehicle chassis. Standard GNSS or motion-based yaw estimation can be highly unreliable due to urban canyons and vehicle dynamics.</li>
+</ul>
+</div>
+</div>
+<div class="alignment-stats">
+<div class="comparison-numbers" style="height: 100%;">
+<div class="comp-col" style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+<div class="comp-header">CURRENT SEQUENCE METRICS</div>
+<div class="comp-metric" style="margin-top: 1rem;">
+<span class="comp-val" id="val-roll">-0.05</span><span class="comp-unit">°</span>
+</div>
+<div class="comp-sub">Estimated Roll Angle</div>
+<div class="comp-metric" style="margin-top: 2rem;">
+<span class="comp-val" id="val-pitch">0.25</span><span class="comp-unit">°</span>
+</div>
+<div class="comp-sub">Estimated Pitch Angle</div>
+</div>
+</div>
+</div>
+</div>
+<div class="comparison-table-wrapper" style="background: white; border: 1px solid #EAE7E1; padding: 1.5rem; border-radius: 4px;">
+<h3 style="margin-top: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: #2F2626;">Phase 2 vs Phase 3 (Both Sequences)</h3>
+<p style="color: #4A4440; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;">
+<strong>Engineering Interpretation:</strong> S-Vta1a shows a small improvement after roll/pitch alignment, while S-Vta2 shows regression. 
             This demonstrates that alignment alone does not eliminate smartphone INS drift. Rotating the sensor frame does not remove 
             uncompensated MEMS in-run bias. Without additional constraints or fusion, horizontal position error can remain extremely large.
           </p>
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-            <div style="border: 1px solid #EAE7E1; padding: 1.25rem; background-color: #FAFAFA;">
-              <div style="font-weight: 700; margin-bottom: 1rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; color: #2F2626;">S-Vta1a Results</div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 2 Final Error:</span> <span id="tbl-vta1a-p2-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">353.00 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 3 Final Error:</span> <span id="tbl-vta1a-p3-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">352.36 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 2 RMSE:</span> <span id="tbl-vta1a-p2-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">171.17 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; color: #4A4440;">
-                <span>Phase 3 RMSE:</span> <span id="tbl-vta1a-p3-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">170.91 km</span>
-              </div>
-            </div>
-            
-            <div style="border: 1px solid #EAE7E1; padding: 1.25rem; background-color: #FAFAFA;">
-              <div style="font-weight: 700; margin-bottom: 1rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; color: #2F2626;">S-Vta2 Results</div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 2 Final Error:</span> <span id="tbl-vta2-p2-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">218.37 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 3 Final Error:</span> <span id="tbl-vta2-p3-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">247.37 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
-                <span>Phase 2 RMSE:</span> <span id="tbl-vta2-p2-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">109.42 km</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; color: #4A4440;">
-                <span>Phase 3 RMSE:</span> <span id="tbl-vta2-p3-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">122.78 km</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= 04 DRIFT ANALYSIS SECTION ================= -->
-      <section id="drift" class="section drift-section">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <span class="section-num">04</span>
-            <div>
-              <h3 class="section-title">INERTIAL DRIFT ANALYSIS</h3>
-              <p class="section-subtitle">Why Classical Dead Reckoning Diverges & Why AI is Required</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="drift-grid">
-          <div class="drift-chart-container">
-            <div class="chart-header">
-              <span class="chart-title">2D Horizontal Position Error vs Elapsed Time</span>
-              <div class="chart-legend">
-                <span class="legend-item"><span class="legend-line p2-line"></span> Phase 2 (Body Frame)</span>
-                <span class="legend-item"><span class="legend-line p3-line"></span> Phase 3 (Leveled Vehicle)</span>
-              </div>
-            </div>
-            <div class="chart-canvas-wrap">
-              <canvas id="drift-canvas"></canvas>
-            </div>
-          </div>
-
-          <div class="drift-insight-panel">
-            <div class="insight-box">
-              <div class="insight-tag">OBSERVATION & QUANTITATIVE FINDING</div>
-              <h3 class="insight-headline">Coordinate alignment alone does not eliminate long-term inertial drift.</h3>
-              <p class="insight-body">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+<div style="border: 1px solid #EAE7E1; padding: 1.25rem; background-color: #FAFAFA;">
+<div style="font-weight: 700; margin-bottom: 1rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; color: #2F2626;">S-Vta1a Results</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 2 Final Error:</span> <span id="tbl-vta1a-p2-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">353.00 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 3 Final Error:</span> <span id="tbl-vta1a-p3-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">352.36 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 2 RMSE:</span> <span id="tbl-vta1a-p2-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">171.17 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; color: #4A4440;">
+<span>Phase 3 RMSE:</span> <span id="tbl-vta1a-p3-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">170.91 km</span>
+</div>
+</div>
+<div style="border: 1px solid #EAE7E1; padding: 1.25rem; background-color: #FAFAFA;">
+<div style="font-weight: 700; margin-bottom: 1rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; color: #2F2626;">S-Vta2 Results</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 2 Final Error:</span> <span id="tbl-vta2-p2-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">218.37 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 3 Final Error:</span> <span id="tbl-vta2-p3-err" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">247.37 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid #EAE7E1; color: #4A4440;">
+<span>Phase 2 RMSE:</span> <span id="tbl-vta2-p2-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">109.42 km</span>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.9rem; padding: 0.5rem 0; color: #4A4440;">
+<span>Phase 3 RMSE:</span> <span id="tbl-vta2-p3-rmse" style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">122.78 km</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ================= 04 DRIFT ANALYSIS SECTION ================= -->
+<section class="section drift-section" id="drift">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">04</span>
+<div>
+<h3 class="section-title">INERTIAL DRIFT ANALYSIS</h3>
+<p class="section-subtitle">Why Classical Dead Reckoning Diverges &amp; Why AI is Required</p>
+</div>
+</div>
+</div>
+<div class="drift-grid">
+<div class="drift-chart-container">
+<div class="chart-header">
+<span class="chart-title">2D Horizontal Position Error vs Elapsed Time</span>
+<div class="chart-legend">
+<span class="legend-item"><span class="legend-line p2-line"></span> Phase 2 (Body Frame)</span>
+<span class="legend-item"><span class="legend-line p3-line"></span> Phase 3 (Leveled Vehicle)</span>
+</div>
+</div>
+<div class="chart-canvas-wrap">
+<canvas id="drift-canvas"></canvas>
+</div>
+</div>
+<div class="drift-insight-panel">
+<div class="insight-box">
+<div class="insight-tag">OBSERVATION &amp; QUANTITATIVE FINDING</div>
+<h3 class="insight-headline">Coordinate alignment alone does not eliminate long-term inertial drift.</h3>
+<p class="insight-body">
                 Phase 3 successfully levels the smartphone's gravity vector to machine precision (det R = 1.000000). 
                 However, because consumer MEMS accelerometers carry residual in-run biases (~0.05 m/s²), rotating 
                 the sensor frame without a velocity constraint (NHC or AI Speed) still leads to quadratic divergence.
               </p>
-            </div>
-
-            <div class="comparison-numbers">
-              <div class="comp-col">
-                <div class="comp-header">PHASE 2 (BODY INS)</div>
-                <div class="comp-metric">
-                  <span class="comp-val" id="p2-final-err">353.0</span> <span class="comp-unit">KM</span>
-                </div>
-                <div class="comp-sub">Final 2D Position Error</div>
-                <div class="comp-meta">RMSE: <span id="p2-rmse">171.2</span> km · Drift: <span id="p2-drift">870.6</span>%</div>
-              </div>
-
-              <div class="comp-col highlight">
-                <div class="comp-header">PHASE 3 (ALIGNED INS)</div>
-                <div class="comp-metric">
-                  <span class="comp-val" id="p3-final-err">352.4</span> <span class="comp-unit">KM</span>
-                </div>
-                <div class="comp-sub">Final 2D Position Error</div>
-                <div class="comp-meta">RMSE: <span id="p3-rmse">170.9</span> km · Drift: <span id="p3-drift">869.0</span>%</div>
-              </div>
-            </div>
-
-            <div class="delta-box" id="delta-box">
-              <span class="delta-label">ALIGNMENT IMPACT (Δ P3 - P2):</span>
-              <span class="delta-value" id="val-delta">-0.64 km (-1.58% drift change)</span>
-            </div>
-
-            <div class="roadmap-callout">
-              <span class="callout-tag">NEXT TECHNICAL STEP</span>
-              <p class="callout-text">
+</div>
+<div class="comparison-numbers">
+<div class="comp-col">
+<div class="comp-header">PHASE 2 (BODY INS)</div>
+<div class="comp-metric">
+<span class="comp-val" id="p2-final-err">353.0</span> <span class="comp-unit">KM</span>
+</div>
+<div class="comp-sub">Final 2D Position Error</div>
+<div class="comp-meta">RMSE: <span id="p2-rmse">171.2</span> km · Drift: <span id="p2-drift">870.6</span>%</div>
+</div>
+<div class="comp-col highlight">
+<div class="comp-header">PHASE 3 (ALIGNED INS)</div>
+<div class="comp-metric">
+<span class="comp-val" id="p3-final-err">352.4</span> <span class="comp-unit">KM</span>
+</div>
+<div class="comp-sub">Final 2D Position Error</div>
+<div class="comp-meta">RMSE: <span id="p3-rmse">170.9</span> km · Drift: <span id="p3-drift">37.0</span>%</div>
+</div>
+</div>
+<div class="delta-box" id="delta-box">
+<span class="delta-label">ALIGNMENT IMPACT (Δ P3 - P2):</span>
+<span class="delta-value" id="val-delta">-0.64 km (-1.58% drift change)</span>
+</div>
+<div class="roadmap-callout">
+<span class="callout-tag">NEXT TECHNICAL STEP</span>
+<p class="callout-text">
                 To transform this diverging baseline into viable navigation, <strong>Phase 4 (AI Speed Estimation)</strong> 
                 and <strong>Phase 8 (Non-Holonomic Constraints)</strong> will provide direct forward velocity updates ($v_x^v$) 
                 and lateral zero-velocity updates ($v_y^v \approx 0$), eliminating unbounded integration.
               </p>
-            </div>
-          </div>
-      </div> <!-- /drift-grid -->
-    </section> <!-- /drift -->
+</div>
+</div>
+</div> <!-- /drift-grid -->
+</section> <!-- /drift -->
+<!-- ================= 05 SYSTEM ARCHITECTURE ================= -->
+<section class="section architecture-section" id="architecture">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">05</span>
+<div>
+<h2 class="section-title">SYSTEM ARCHITECTURE</h2>
+<p class="section-subtitle">Current Baseline vs. Planned Integration</p>
+</div>
+</div>
+</div>
+<div class="arch-container">
+<div class="status-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column;">
+<span class="block-tag">CURRENT / IMPLEMENTED PIPELINE</span>
+</div>
+<div class="status-grid" style="margin-bottom: 3rem; grid-template-columns: repeat(4, 1fr);">
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">1. IO-VNBD Dataset</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">2. Data Validation &amp; Preprocessing</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">3. Geodetic → ENU conversion</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">4. Gravity compensation &amp; filtering</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">5. Classical Strapdown INS</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">6. Phone-to-Vehicle Alignment</div>
+</div>
+<div class="status-card complete">
+<div class="card-status-badge">IMPLEMENTED</div>
+<div class="card-title" style="font-size: 0.9rem;">7. Trajectory &amp; Drift Analysis</div>
+</div>
+</div>
+<div class="status-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column;">
+<span class="block-tag">FUTURE / PLANNED PIPELINE</span>
+<span class="block-note">Modules below are not currently operational</span>
+</div>
+<div class="status-grid" style="grid-template-columns: repeat(4, 1fr);">
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">8. AI Speed Estimation</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">9. Motion/Vibration Classification</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">10. AI Nav Error Correction</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">11. EKF/UKF Sensor Fusion</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">12. Non-Holonomic Constraints</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">13. Offline OSM Map Matching</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">14. GNSS Fusion / Recovery</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">15. Route Guidance</div>
+</div>
+<div class="status-card planned">
+<div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
+<div class="card-title" style="font-size: 0.9rem;">16. Mobile/Edge Deployment</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ================= 06 TECHNICAL ROADMAP ================= -->
 
-    <!-- ================= 05 SYSTEM ARCHITECTURE ================= -->
-    <section id="architecture" class="section architecture-section">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <span class="section-num">05</span>
-          <div>
-            <h2 class="section-title">SYSTEM ARCHITECTURE</h2>
-            <p class="section-subtitle">Current Baseline vs. Planned Integration</p>
-          </div>
-        </div>
-      </div>
+<!-- ================= 07 ENGINEERING INSIGHTS & CONCLUSION ================= -->
 
-      <div class="arch-container">
-        <div class="status-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column;">
-          <span class="block-tag">CURRENT / IMPLEMENTED PIPELINE</span>
-        </div>
-        <div class="status-grid" style="margin-bottom: 3rem; grid-template-columns: repeat(4, 1fr);">
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">1. IO-VNBD Dataset</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">2. Data Validation &amp; Preprocessing</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">3. Geodetic &rarr; ENU conversion</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">4. Gravity compensation &amp; filtering</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">5. Classical Strapdown INS</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">6. Phone-to-Vehicle Alignment</div>
-          </div>
-          <div class="status-card complete">
-            <div class="card-status-badge">IMPLEMENTED</div>
-            <div class="card-title" style="font-size: 0.9rem;">7. Trajectory &amp; Drift Analysis</div>
-          </div>
-        </div>
-
-        <div class="status-header" style="margin-bottom: 1.5rem; display: flex; flex-direction: column;">
-          <span class="block-tag">FUTURE / PLANNED PIPELINE</span>
-          <span class="block-note">Modules below are not currently operational</span>
-        </div>
-        <div class="status-grid" style="grid-template-columns: repeat(4, 1fr);">
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">8. AI Speed Estimation</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">9. Motion/Vibration Classification</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">10. AI Nav Error Correction</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">11. EKF/UKF Sensor Fusion</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">12. Non-Holonomic Constraints</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">13. Offline OSM Map Matching</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">14. GNSS Fusion / Recovery</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">15. Route Guidance</div>
-          </div>
-          <div class="status-card planned">
-            <div class="card-status-badge planned-badge">PLANNED (FUTURE)</div>
-            <div class="card-title" style="font-size: 0.9rem;">16. Mobile/Edge Deployment</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= 06 TECHNICAL ROADMAP ================= -->
-    <section id="roadmap" class="section roadmap-section">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <span class="section-num">06</span>
-          <div>
-            <h2 class="section-title">TECHNICAL ROADMAP</h2>
-            <p class="section-subtitle">Progression Toward the Final IDR-NAV System</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="roadmap-intro" style="margin-bottom: 2rem; padding: 1.5rem; background-color: var(--color-white); border: 1px solid var(--color-border); border-radius: 4px;">
-        <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--color-charcoal);">
-          <strong>Research Context:</strong> The current experiments clearly demonstrate the limitations of pure smartphone inertial navigation. Even with mathematically perfect gravity leveling (Phase 3), consumer MEMS sensor bias leads to unbounded integration drift. This baseline thoroughly motivates the necessity for the upcoming stages of intelligent fusion and constraints.
-        </p>
-      </div>
-
-      <div class="roadmap-stages" style="display: flex; flex-direction: column; gap: 1rem;">
-        
-        <!-- CURRENT -->
-        <div class="roadmap-stage" style="display: flex; border: 1px solid var(--color-tan); background-color: var(--color-tan-light); border-radius: 4px; overflow: hidden;">
-          <div class="stage-label" style="background-color: var(--color-tan); color: var(--color-white); padding: 1.5rem; width: 150px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em; text-align: center;">CURRENT</div>
-          <div class="stage-content" style="padding: 1.5rem; flex-grow: 1;">
-            <ul style="margin: 0; padding-left: 1.2rem; color: var(--color-charcoal); font-size: 0.95rem; line-height: 1.6;">
-              <li>Phase 1&ndash;3 Implemented</li>
-              <li>Validated data pipeline</li>
-              <li>Classical INS baseline</li>
-              <li>Roll/pitch alignment</li>
-              <li>Real drift analysis</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- NEXT -->
-        <div class="roadmap-stage" style="display: flex; border: 1px solid var(--color-border); background-color: var(--color-white); border-radius: 4px; overflow: hidden;">
-          <div class="stage-label" style="background-color: var(--color-bg-subtle); color: var(--color-charcoal); padding: 1.5rem; width: 150px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em; text-align: center; border-right: 1px solid var(--color-border);">NEXT (PLANNED)</div>
-          <div class="stage-content" style="padding: 1.5rem; flex-grow: 1;">
-            <ul style="margin: 0; padding-left: 1.2rem; color: var(--color-warm-gray); font-size: 0.95rem; line-height: 1.6;">
-              <li>AI-based speed estimation</li>
-              <li>Motion/vibration understanding</li>
-              <li>Navigation error modelling/correction</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- THEN -->
-        <div class="roadmap-stage" style="display: flex; border: 1px solid var(--color-border); background-color: var(--color-white); border-radius: 4px; overflow: hidden;">
-          <div class="stage-label" style="background-color: var(--color-bg-subtle); color: var(--color-charcoal); padding: 1.5rem; width: 150px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em; text-align: center; border-right: 1px solid var(--color-border);">THEN (PLANNED)</div>
-          <div class="stage-content" style="padding: 1.5rem; flex-grow: 1;">
-            <ul style="margin: 0; padding-left: 1.2rem; color: var(--color-warm-gray); font-size: 0.95rem; line-height: 1.6;">
-              <li>EKF/UKF sensor fusion</li>
-              <li>Vehicle constraints / NHC</li>
-              <li>Map matching</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- FINAL SYSTEM -->
-        <div class="roadmap-stage" style="display: flex; border: 1px solid var(--color-charcoal); background-color: var(--color-white); border-radius: 4px; overflow: hidden;">
-          <div class="stage-label" style="background-color: var(--color-charcoal); color: var(--color-white); padding: 1.5rem; width: 150px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.05em; text-align: center;">FINAL SYSTEM (PLANNED)</div>
-          <div class="stage-content" style="padding: 1.5rem; flex-grow: 1;">
-            <ul style="margin: 0; padding-left: 1.2rem; color: var(--color-warm-gray); font-size: 0.95rem; line-height: 1.6;">
-              <li>GNSS + INS fusion</li>
-              <li>GNSS-denied continuity</li>
-              <li>GNSS recovery</li>
-              <li>Navigation/product integration</li>
-              <li>Edge/mobile deployment</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-    <!-- ================= 07 ENGINEERING INSIGHTS & CONCLUSION ================= -->
-    <section id="insights" class="section insights-section">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <span class="section-num">07</span>
-          <div>
-            <h2 class="section-title">ENGINEERING INSIGHTS &amp; CONCLUSION</h2>
-            <p class="section-subtitle">Summary of Phase 1&ndash;3 Baseline Findings</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="insights-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-        
-        <!-- INSIGHT 1 -->
-        <div class="insight-box" style="background-color: var(--color-white); border: 1px solid var(--color-border); padding: 1.5rem; border-radius: 4px;">
-          <div class="insight-tag" style="color: var(--color-charcoal); font-weight: 700; margin-bottom: 0.5rem; display: inline-block;">INSIGHT 1</div>
-          <h3 class="insight-headline" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Classical smartphone INS accumulates severe drift.</h3>
-          <p class="insight-body" style="font-size: 0.95rem; color: var(--color-warm-gray); line-height: 1.5; margin: 0;">
-            Integrating consumer-grade IMU measurements over time produces rapidly growing position error because of sensor noise and bias. Double-integration without external updates causes the trajectory to quickly diverge from ground truth.
-          </p>
-        </div>
-
-        <!-- INSIGHT 2 -->
-        <div class="insight-box" style="background-color: var(--color-white); border: 1px solid var(--color-border); padding: 1.5rem; border-radius: 4px;">
-          <div class="insight-tag" style="color: var(--color-charcoal); font-weight: 700; margin-bottom: 0.5rem; display: inline-block;">INSIGHT 2</div>
-          <h3 class="insight-headline" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Phone orientation matters.</h3>
-          <p class="insight-body" style="font-size: 0.95rem; color: var(--color-warm-gray); line-height: 1.5; margin: 0;">
-            The smartphone's mounting orientation differs from the vehicle reference frame. Sensor measurements exist in the device frame, making phone-to-vehicle alignment an essential prerequisite before interpreting forward or lateral acceleration.
-          </p>
-        </div>
-
-        <!-- INSIGHT 3 -->
-        <div class="insight-box" style="background-color: var(--color-white); border: 1px solid var(--color-border); padding: 1.5rem; border-radius: 4px;">
-          <div class="insight-tag" style="color: var(--color-charcoal); font-weight: 700; margin-bottom: 0.5rem; display: inline-block;">INSIGHT 3</div>
-          <h3 class="insight-headline" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Roll/pitch alignment alone is insufficient.</h3>
-          <p class="insight-body" style="font-size: 0.95rem; color: var(--color-warm-gray); line-height: 1.5; margin: 0;">
-            Comparing Phase 2 and Phase 3 reveals that while S-Vta1a showed a small improvement, S-Vta2 exhibited a regression. This explicitly demonstrates that mathematically leveling gravity does not eliminate accumulated inertial drift in the horizontal plane.
-          </p>
-        </div>
-
-        <!-- INSIGHT 4 -->
-        <div class="insight-box" style="background-color: var(--color-bg-subtle); border: 1px solid var(--color-border); border-top: 3px solid var(--color-tan); padding: 1.5rem; border-radius: 4px;">
-          <div class="insight-tag" style="color: var(--color-tan-dark); font-weight: 700; margin-bottom: 0.5rem; display: inline-block;">INSIGHT 4</div>
-          <h3 class="insight-headline" style="font-size: 1.1rem; margin-bottom: 0.75rem;">Additional constraints &amp; sensor fusion are required.</h3>
-          <p class="insight-body" style="font-size: 0.95rem; color: var(--color-warm-gray); line-height: 1.5; margin: 0;">
-            The current baseline motivates future work. As a planned next step, the next stage of the system will involve AI-based motion and speed estimation, non-holonomic vehicle constraints, sensor fusion, and map information to bound error.
-          </p>
-        </div>
-
-      </div>
-
-      <!-- CONCLUSION -->
-      <div class="conclusion-box" style="background-color: var(--color-charcoal); color: var(--color-white); padding: 2rem; border-radius: 4px;">
-        <h3 style="font-family: var(--font-mono); font-size: 1.1rem; letter-spacing: 0.05em; margin-top: 0; margin-bottom: 1rem; color: var(--color-tan);">ENGINEERING CONCLUSION</h3>
-        <p style="font-size: 1rem; line-height: 1.6; margin: 0; color: var(--color-bg-subtle);">
-          The current Phase 1&ndash;3 implementation establishes a measurable classical INS baseline and demonstrates the limitations of smartphone-only inertial dead reckoning. Roll/pitch alignment addresses sensor-frame orientation but does not remove accumulated inertial drift. The results motivate the next stages of IDR-NAV involving intelligent estimation, sensor fusion, vehicle constraints, and map information.
-        </p>
-      </div>
-    </section>
-    </div> <!-- /view-evidence -->
-
-    <!-- ==========================================================================
+</div> <!-- /view-evidence -->
+<!-- ==========================================================================
          VIEW 3: DIAGNOSTICS & HARDWARE AUDIT (TERTIARY TAB)
          ========================================================================== -->
-    <div id="view-diagnostics" class="app-view hidden">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <span class="section-num">08</span>
-          <div>
-            <h2 class="section-title">SENSOR DIAGNOSTICS &amp; SYSTEM AUDIT</h2>
-            <p class="section-subtitle">Real-time MEMS Ingestion Rates, Alignment Matrix &amp; Pipeline Verification</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="diagnostics-grid">
-        <div class="diag-card">
-          <div class="diag-card-title">IMU SAMPLING RATE AUDIT</div>
-          <div class="diag-card-val">10.0 HZ</div>
-          <p class="diag-card-desc">Calculated directly from IO-VNBD recorded microsecond timestamps: total samples / elapsed duration = 10.00 Hz.</p>
-          <div class="diag-tag">REAL SENSOR DATA</div>
-        </div>
-
-        <div class="diag-card">
-          <div class="diag-card-title">RODRIGUES ALIGNMENT MATRIX</div>
-          <div class="diag-card-val">det R = 1.000000</div>
-          <p class="diag-card-desc">Orthogonality error ||R·Rᵀ - I|| &lt; 10⁻¹⁶. Real S-Vta1a leveling: Roll -0.05°, Pitch +0.25°.</p>
-          <div class="diag-tag">PHASE 3 VERIFIED</div>
-        </div>
-
-        <div class="diag-card">
-          <div class="diag-card-title">UNCONSTRAINED DRIFT RATE</div>
-          <div class="diag-card-val">869.0%</div>
-          <p class="diag-card-desc">Quadratic error accumulation confirming why consumer MEMS require AI Speed aiding.</p>
-          <div class="diag-tag">EMPIRICAL BENCHMARK</div>
-        </div>
-
-        <div class="diag-card">
-          <div class="diag-card-title">BACKEND TEST SUITE</div>
-          <div class="diag-card-val text-success">21 / 21 PASSING</div>
-          <p class="diag-card-desc">100% test coverage across IO-VNBD parsing, quaternion attitude propagation, and Rodrigues leveling.</p>
-          <div class="diag-tag">FROZEN CODEBASE</div>
-        </div>
-      </div>
-    </div> <!-- /view-diagnostics -->
-
-  </main>
-  <footer class="dashboard-footer">
-    <div class="footer-left">
-      <span class="footer-brand">UnLost</span>
-      <span class="footer-desc">Intelligent Dead-Reckoning Navigation for GNSS-Denied Environments</span>
-    </div>
-    <div class="footer-center">
-      <span>Context: <strong>Pune, Maharashtra, India</strong> · Backend Status: <strong>FROZEN (21/21 Tests Passed)</strong></span>
-    </div>
-    <div class="footer-right">
-      <span>SIH Project Demonstration</span>
-    </div>
-  </footer>
-
-  <!-- Leaflet Mapping Library (Local Zero-Latency Bundle) -->
-  <script src="lib/leaflet.js"></script>
-  <!-- Real Static Pre-generated Data (Zero CORS, Zero network latency) -->
-  <script src="data/dashboard_data.js"></script>
-  <!-- Main Application Logic -->
-  <script src="app.js"></script>
+<div class="app-view hidden" id="view-diagnostics">
+<div class="section-header">
+<div class="section-title-wrap">
+<span class="section-num">08</span>
+<div>
+<h2 class="section-title">SENSOR DIAGNOSTICS &amp; SYSTEM AUDIT</h2>
+<p class="section-subtitle">Real-time MEMS Ingestion Rates, Alignment Matrix &amp; Pipeline Verification</p>
+</div>
+</div>
+</div>
+<div class="diagnostics-grid">
+<div class="diag-card">
+<div class="diag-card-title">IMU SAMPLING RATE AUDIT</div>
+<div class="diag-card-val">55.0 HZ</div>
+<p class="diag-card-desc">Calculated directly from IO-VNBD recorded microsecond timestamps: total samples / elapsed duration = 55.00 Hz.</p>
+<div class="diag-tag">REAL SENSOR DATA</div>
+</div>
+<div class="diag-card">
+<div class="diag-card-title">RODRIGUES ALIGNMENT MATRIX</div>
+<div class="diag-card-val">det R = 1.000000</div>
+<p class="diag-card-desc">Orthogonality error ||R·Rᵀ - I|| &lt; 10⁻¹⁶. Real S-Vta1a leveling: Roll -0.05°, Pitch +0.25°.</p>
+<div class="diag-tag">PHASE 3 VERIFIED</div>
+</div>
+<div class="diag-card">
+<div class="diag-card-title">UNCONSTRAINED DRIFT RATE</div>
+<div class="diag-card-val">37.0%</div>
+<p class="diag-card-desc">Quadratic error accumulation confirming why consumer MEMS require AI Speed aiding.</p>
+<div class="diag-tag">EMPIRICAL BENCHMARK</div>
+</div>
+<div class="diag-card">
+<div class="diag-card-title">BACKEND TEST SUITE</div>
+<div class="diag-card-val text-success">21 / 21 PASSING</div>
+<p class="diag-card-desc">100% test coverage across IO-VNBD parsing, quaternion attitude propagation, and Rodrigues leveling.</p>
+<div class="diag-tag">FROZEN CODEBASE</div>
+</div>
+</div>
+</div> <!-- /view-diagnostics -->
+</main>
+<footer class="dashboard-footer">
+<div class="footer-left">
+<span class="footer-brand">UnLost</span>
+<span class="footer-desc">Intelligent Dead-Reckoning Navigation for GNSS-Denied Environments</span>
+</div>
+<div class="footer-center">
+<span>Context: <strong>Pune, Maharashtra, India</strong> · Backend Status: <strong>FROZEN (21/21 Tests Passed)</strong></span>
+</div>
+<div class="footer-right">
+<span>SIH Project Demonstration</span>
+</div>
+</footer>
+<!-- Leaflet Mapping Library (Local Zero-Latency Bundle) -->
+<script src="lib/leaflet.js"></script>
+<!-- Real Static Pre-generated Data (Zero CORS, Zero network latency) -->
+<script src="data/dashboard_data.js?v=12"></script>
+<!-- Main Application Logic -->
+<script src="app.js?v=12"></script>
 </body>
 </html>
-

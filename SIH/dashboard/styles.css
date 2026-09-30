@@ -46,7 +46,7 @@
   --transition-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.tab-navigation[data-theme="dark"] {
+body[data-theme="dark"] {
   --color-white: #1E293B;
   --color-bg: #0F172A;
   --color-bg-subtle: #1E293B;
@@ -65,26 +65,26 @@ body.tab-navigation[data-theme="dark"] {
 }
 
 
-body.tab-navigation[data-theme="dark"] .top-nav {
+body[data-theme="dark"] .top-nav {
   background: var(--color-bg) !important;
   border-color: #222222 !important;
 }
 
 
-body.tab-navigation[data-theme="dark"] .unlost-brand-name, body.tab-navigation[data-theme="dark"] .geo-text {
+body[data-theme="dark"] .unlost-brand-name, body[data-theme="dark"] .geo-text {
   color: #FFFFFF !important;
 }
 
-body.tab-navigation[data-theme="dark"] .nav-app-tabs {
+body[data-theme="dark"] .nav-app-tabs {
   background: var(--color-bg) !important;
   border-color: #333333 !important;
 }
 
-body.tab-navigation[data-theme="dark"] .tab-btn {
+body[data-theme="dark"] .tab-btn {
   color: #FFFFFF !important;
 }
 
-body.tab-navigation[data-theme="dark"] .tab-btn.active {
+body[data-theme="dark"] .tab-btn.active {
   color: var(--color-sunset) !important;
   background: var(--color-sunset-subtle) !important;
   border-color: rgba(255, 88, 65, 0.35) !important;
@@ -93,11 +93,11 @@ body.tab-navigation[data-theme="dark"] .tab-btn.active {
 
 
 
-body.tab-navigation[data-theme="dark"] .leaflet-layer, body.tab-navigation[data-theme="dark"] .leaflet-control-zoom-in, body.tab-navigation[data-theme="dark"] .leaflet-control-zoom-out, body.tab-navigation[data-theme="dark"] .leaflet-control-attribution {
+body[data-theme="dark"] .leaflet-layer, body[data-theme="dark"] .leaflet-control-zoom-in, body[data-theme="dark"] .leaflet-control-zoom-out, body[data-theme="dark"] .leaflet-control-attribution {
   filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 
-body.tab-navigation[data-theme="dark"] .btn-theme-toggle {
+body[data-theme="dark"] .btn-theme-toggle {
   background: var(--color-bg-subtle) !important;
   color: #FFFFFF !important;
   border-color: #333333 !important;
@@ -274,6 +274,8 @@ body.tab-navigation .dashboard-footer {
 .nav-app-tabs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.35rem;
   background: var(--color-white);
   padding: 0.25rem 0.35rem;
@@ -2008,7 +2010,7 @@ body.tab-navigation .dashboard-footer {
   gap: 0.4rem;
 }
 
-body.tab-navigation[data-theme="dark"] .routing-inputs {
+body[data-theme="dark"] .routing-inputs {
   background: var(--color-bg-subtle) !important;
 }
 
@@ -2047,7 +2049,7 @@ body.tab-navigation[data-theme="dark"] .routing-inputs {
   text-overflow: ellipsis;
 }
 
-body.tab-navigation[data-theme="dark"] .routing-field {
+body[data-theme="dark"] .routing-field {
   background: var(--color-bg) !important;
   color: #FFFFFF !important;
   border-color: #333333 !important;
@@ -3291,10 +3293,10 @@ body.tab-navigation[data-theme="dark"] .routing-field {
 .speed-btn:last-child { border-right: none; }
 .speed-btn:hover { background: #f3f4f6; }
 .speed-btn.active { background: var(--color-sunset-subtle); color: var(--color-sunset); }
-body.tab-navigation[data-theme="dark"] .speed-control-panel { background: var(--color-bg-subtle); border-color: #333333; }
-body.tab-navigation[data-theme="dark"] .speed-btn { color: #FFFFFF; border-color: #333333; }
-body.tab-navigation[data-theme="dark"] .speed-btn:hover { background: #222222; }
-body.tab-navigation[data-theme="dark"] .speed-btn.active { background: var(--color-sunset-subtle); color: var(--color-sunset); }
+body[data-theme="dark"] .speed-control-panel { background: var(--color-bg-subtle); border-color: #333333; }
+body[data-theme="dark"] .speed-btn { color: #FFFFFF; border-color: #333333; }
+body[data-theme="dark"] .speed-btn:hover { background: #222222; }
+body[data-theme="dark"] .speed-btn.active { background: var(--color-sunset-subtle); color: var(--color-sunset); }
 
 /* ==========================================================================
    FLEXBOX RESPONSIVE REFACTOR
@@ -3455,4 +3457,58 @@ body {
     right: 0.25rem !important;
     transform-origin: bottom right;
   }
+}
+/* Enhanced Dark Mode overrides for Alisha's Evidence & Diagnostics sections */
+body[data-theme="dark"] {
+  background-color: var(--color-bg) !important;
+}
+body[data-theme="dark"] .page-container, 
+body[data-theme="dark"] .app-view {
+  background-color: var(--color-bg) !important;
+}
+body[data-theme="dark"] .status-card.complete,
+body[data-theme="dark"] .status-card {
+  background-color: var(--color-white) !important;
+  border-left-color: var(--color-charcoal) !important;
+}
+body[data-theme="dark"] .status-card.planned {
+  background-color: var(--color-bg-subtle) !important;
+  border-left-color: var(--color-border) !important;
+}
+body[data-theme="dark"] .diag-card,
+body[data-theme="dark"] .nav-card {
+  background-color: var(--color-white) !important;
+  border-color: var(--color-border) !important;
+}
+body[data-theme="dark"] .section-title,
+body[data-theme="dark"] .section-num,
+body[data-theme="dark"] .card-title,
+body[data-theme="dark"] .diag-card-val,
+body[data-theme="dark"] .metric-num,
+body[data-theme="dark"] .metric-label,
+body[data-theme="dark"] .nav-card-value span {
+  color: #FFFFFF !important;
+}
+body[data-theme="dark"] .card-detail,
+body[data-theme="dark"] .section-subtitle,
+body[data-theme="dark"] .diag-card-desc,
+body[data-theme="dark"] .metric-sub,
+body[data-theme="dark"] .nav-card-title,
+body[data-theme="dark"] .nav-card-meta {
+  color: var(--color-warm-gray) !important;
+}
+body[data-theme="dark"] .card-status-badge {
+  color: var(--color-muted-gray) !important;
+}
+body[data-theme="dark"] .evidence-subnav {
+  background-color: var(--color-bg-subtle) !important;
+  border-color: var(--color-border) !important;
+}
+body[data-theme="dark"] .evidence-subnav a {
+  color: var(--color-warm-gray) !important;
+}
+body[data-theme="dark"] .evidence-subnav a:hover,
+body[data-theme="dark"] .evidence-subnav a.active {
+  color: var(--color-sunset) !important;
+  border-bottom-color: var(--color-sunset) !important;
 }
